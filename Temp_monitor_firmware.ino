@@ -44,7 +44,7 @@ OperatingMode g_mode = MODE_RECORD;
 SamplingFrequency g_samplingFreq = SAMPLING_FREQ_1S;
 
 // Global current channel displayed on graph
-DisplayChannel g_displayedChannel = CHANNEL_1;
+DisplayChannel g_displayedChannel = CHANNEL_ALL;
 
 // Forward declarations for mode handlers
 void handleStandbyMode(const float tempsC[]);
@@ -63,8 +63,6 @@ void drawStatusLine(const float tempsC[], int count);
 // Draw temperature/time graph area
 void drawGraph(const float tempsC[], int count);
 
-// --- Hardware pins -----------------------------------------------------------
-
 // Number of DS18B20 sensor channels
 constexpr int SENSOR_COUNT = 4;
 
@@ -77,6 +75,16 @@ constexpr int16_t GRAPH_TOP_MARGIN    = 40;
 constexpr int16_t GRAPH_LEFT_MARGIN   = 30;
 constexpr int16_t GRAPH_RIGHT_MARGIN  = 30;
 constexpr int16_t GRAPH_BOTTOM_MARGIN = 20;
+
+// Channel graph colors
+constexpr uint16_t g_channelColors[SENSOR_COUNT] = {
+  ILI9341_YELLOW,
+  ILI9341_BLUE,
+  ILI9341_ORANGE,
+  ILI9341_MAGENTA
+};
+
+// --- Hardware pins -----------------------------------------------------------
 
 // TFT display pins
 static const int PIN_TFT_MISO = 11;  // SDO (not always needed)
@@ -119,7 +127,7 @@ static DallasTemperature* g_sensors[SENSOR_COUNT] = {
 // Since sensors report wrong temperature when first plugged in,
 // we need to have incrementing counters instead of boolean flags.
 // Flag becomes 1 when device is detected, 2 after first reading.
-static char g_channelHasDevice[SENSOR_COUNT] = { 0, 0, 0, 0 };
+static uint8_t g_channelHasDevice[SENSOR_COUNT] = { 0, 0, 0, 0 };
 
 // Simple timing for temperature refresh
 unsigned long g_lastTempRequestMs = 0;
@@ -241,21 +249,23 @@ void refreshDevicePresence() {
   for (int i = 0; i < SENSOR_COUNT; ++i) {
     if (!g_channelHasDevice[i]) {
       g_sensors[i]->begin();
+    }
 
-      int count = g_sensors[i]->getDeviceCount();
-      bool present = (count > 0);
+    int count = g_sensors[i]->getDeviceCount();
+    bool present = (count > 0);
 
-      if (present != static_cast<bool>(g_channelHasDevice[i])) {
-        // Presence changed; log it once
-        Serial.print("Channel ");
-        Serial.print(i + 1);
-        Serial.print(present ? " attached" : " detached");
-        Serial.println();
-      }
+    if (present != (g_channelHasDevice[i]?true:false)) {
+      // Presence changed; log it once
+      Serial.print("Channel ");
+      Serial.print(i + 1);
+      Serial.print(present ? " attached" : " detached");
+      Serial.println();
+    }
 
-      if (g_channelHasDevice[i] != 1) {
-        g_channelHasDevice[i] = present ? 1 : 0;
-      }
+    if (!present) {
+      g_channelHasDevice[i] = 0; // No device
+    } else if (!g_channelHasDevice[i]) {
+      g_channelHasDevice[i] = 1;
     }
   }
 }
@@ -308,10 +318,10 @@ void drawStatusLine(const float tempsC[], int count) {
   // Channel to display on graph (placeholder: ALL for now)
   tft.print("  CH: ");
   switch (g_displayedChannel) {
-    case CHANNEL_1: tft.print("1"); break;
-    case CHANNEL_2: tft.print("2"); break;
-    case CHANNEL_3: tft.print("3"); break;
-    case CHANNEL_4: tft.print("4"); break;
+    case CHANNEL_1: tft.print("  1"); break;
+    case CHANNEL_2: tft.print("  2"); break;
+    case CHANNEL_3: tft.print("  3"); break;
+    case CHANNEL_4: tft.print("  4"); break;
     case CHANNEL_ALL: tft.print("ALL"); break;
     default: tft.print("?"); break;
   }
@@ -333,7 +343,7 @@ void drawStatusLine(const float tempsC[], int count) {
 
   for (int i = 0; i < count && i < SENSOR_COUNT; ++i) {
     // Label
-    tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+    tft.setTextColor(g_channelColors[i], ILI9341_BLACK);
     tft.print("CH");
     tft.print(i + 1);
     tft.print(":");
@@ -343,7 +353,7 @@ void drawStatusLine(const float tempsC[], int count) {
       tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
       tft.print("---.-  ");
     } else {
-      tft.setTextColor(ILI9341_GREEN, ILI9341_BLACK);
+      tft.setTextColor(g_channelColors[i], ILI9341_BLACK);
       char buf[8];
       dtostrf(tempsC[i], 5, 1, buf);
       tft.print(buf);
@@ -352,6 +362,32 @@ void drawStatusLine(const float tempsC[], int count) {
 
     tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
     tft.print("  "); // small spacer between channels
+  }
+}
+
+// Helper function to get sampling interval in seconds
+int getSamplingIntervalSeconds() {
+  switch (g_samplingFreq) {
+    case SAMPLING_FREQ_1S:    return 1;
+    case SAMPLING_FREQ_5S:    return 5;
+    case SAMPLING_FREQ_10S:   return 10;
+    case SAMPLING_FREQ_60S:   return 60;
+    case SAMPLING_FREQ_600S:  return 600;
+    case SAMPLING_FREQ_3600S: return 3600;
+    default:                  return 1;
+  }
+}
+
+// Helper function to format time duration
+void formatTimeDuration(int seconds, char* buffer, size_t bufSize) {
+  if (seconds < 60) {
+    snprintf(buffer, bufSize, "%ds", seconds);
+  } else if (seconds < 3600) {
+    int mins = seconds / 60;
+    snprintf(buffer, bufSize, "%dm", mins);
+  } else {
+    int hours = seconds / 3600;
+    snprintf(buffer, bufSize, "%dh", hours);
   }
 }
 
@@ -404,12 +440,28 @@ void drawGraphAxis(float minTemp, float maxTemp) {
   tft.print((int)((minTemp + maxTemp) / 2));
   tft.print("C");
 
-  // Placeholder for time label on X axis
-  tft.setCursor(x1, yBottom + 2);
-  tft.print("t");
+  // Time marks along X axis - display every 3 grid lines (every 60 pixels)
+  // Grid lines are every 20 pixels, so time marks at 60, 120, 180, etc.
+  int samplingInterval = getSamplingIntervalSeconds();
+  char timeBuffer[10];
+  
+  for (int x = x0 + 60; x <= x1; x += 60) {
+    // Calculate time in seconds: (pixels from start) × (seconds per pixel)
+    int pixelsFromStart = x - x0;
+    int totalSeconds = pixelsFromStart * samplingInterval;
+    
+    // Format the time duration
+    formatTimeDuration(totalSeconds, timeBuffer, sizeof(timeBuffer));
+    
+    // Display the time mark below the X axis
+    // Center the text around the grid line
+    int textWidth = strlen(timeBuffer) * 6; // Approximate width (6 pixels per char at text size 1)
+    tft.setCursor(x - textWidth / 2, yBottom + 2);
+    tft.print(timeBuffer);
+  }
 }
 
-void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp) {
+void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp, uint16_t color) {
   if (count <= 1) return;
 
   const int16_t x0 = GRAPH_LEFT_MARGIN;
@@ -455,7 +507,7 @@ void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp) {
     int16_t y = tempToY(val);
 
     if (havePrev) {
-      tft.drawLine(prevX, prevY, x, y, ILI9341_GREEN);
+      tft.drawLine(prevX, prevY, x, y, color);
     }
 
     prevX = x;
@@ -575,14 +627,14 @@ void handleRecordMode(const float tempsC[]) {
   drawGraphAxis(g_graphMinTemp, g_graphMaxTemp);
 
   if (g_displayedChannel == CHANNEL_ALL) {
-    // Draw all channels
-    for (int i = 0; i < SENSOR_COUNT; ++i) {
-      drawGraph(g_sensorValues[i], g_sensorValueIndex, g_graphMinTemp, g_graphMaxTemp);
+    // Draw all channels (reverse order to have CH1 on top)
+    for (int i = SENSOR_COUNT-1; i >= 0; --i) {
+      drawGraph(g_sensorValues[i], g_sensorValueIndex, g_graphMinTemp, g_graphMaxTemp, g_channelColors[i]);
     }
   } else {
     // Draw selected channel only
     int channelIndex = static_cast<int>(g_displayedChannel);
-    drawGraph(g_sensorValues[channelIndex], g_sensorValueIndex, g_graphMinTemp, g_graphMaxTemp);
+    drawGraph(g_sensorValues[channelIndex], g_sensorValueIndex, g_graphMinTemp, g_graphMaxTemp, g_channelColors[channelIndex]);
   }
 }
 
