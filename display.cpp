@@ -112,7 +112,7 @@ void drawStatusLine(const float tempsC[], int count)
             char buf[8];
             dtostrf(tempsC[i], 5, 1, buf);
             tft.print(buf);
-            tft.print(" C");
+            tft.print("\xF8C");  // °C (0xF8 is degree symbol in Adafruit GFX)
         }
 
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
@@ -213,18 +213,19 @@ void drawGraphAxis(float minTemp, float maxTemp)
     tft.drawFastVLine(x0, yTop, yBottom - yTop, ILI9341_WHITE); // Y axis (temp)
     tft.drawFastHLine(x0, yBottom, x1 - x0, ILI9341_WHITE);     // X axis (time at bottom)
 
-    // Mark min, max and middle labels on Y axis
-    tft.setCursor(0, yBottom - 4);
-    tft.print((int)minTemp);
-    tft.print("C");
-
-    tft.setCursor(0, yTop - 4);
-    tft.print((int)maxTemp);
-    tft.print("C");
-
-    tft.setCursor(0, (yBottom + yTop) / 2 - 4);
-    tft.print((int)((minTemp + maxTemp) / 2));
-    tft.print("C");
+    // Temperature labels on Y axis - display every 2 grid marks
+    // Grid divides range into 10 intervals, so label at 0, 2, 4, 6, 8, 10
+    for (int i = 0; i <= 10; i += 2)
+    {
+        float frac = i / 10.0f;  // 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
+        float temp = minTemp + frac * range;
+        int16_t y = yBottom - (int16_t)(frac * graphHeight + 0.5f);
+        
+        // Draw temperature label with degree symbol
+        tft.setCursor(4, y - 4);
+        tft.print((int)temp);
+        tft.print(static_cast<char>(247));  // °C (0xF8 is degree symbol in Adafruit GFX)
+    }
 
     // Time marks along X axis - display every 3 grid lines (every 60 pixels)
     // Grid lines are every 20 pixels, so time marks at 60, 120, 180, etc.
