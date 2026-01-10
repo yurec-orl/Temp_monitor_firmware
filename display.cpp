@@ -112,7 +112,7 @@ void drawStatusLine(const float tempsC[], int count)
             char buf[8];
             dtostrf(tempsC[i], 5, 1, buf);
             tft.print(buf);
-            tft.print("\xF8C");  // °C (0xF8 is degree symbol in Adafruit GFX)
+            tft.print(static_cast<char>(247));
         }
 
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
@@ -223,7 +223,9 @@ void drawGraphAxis(float minTemp, float maxTemp)
         
         // Draw temperature label with degree symbol
         tft.setCursor(4, y - 4);
-        tft.print((int)temp);
+        char buf[8];
+        dtostrf(temp, 3, 0, buf);
+        tft.print(buf);
         tft.print(static_cast<char>(247));  // °C (0xF8 is degree symbol in Adafruit GFX)
     }
 
