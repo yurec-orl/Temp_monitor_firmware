@@ -1,4 +1,5 @@
 #include "state.h"
+#include "ring_buffer.h"
 
 // --- Global state variables --------------------------------------------------
 
@@ -11,8 +12,7 @@ uint8_t g_channelHasDevice[SENSOR_COUNT] = { 0, 0, 0, 0 };
 unsigned long g_lastTempRequestMs = 0;
 unsigned long g_lastPresenceRefreshMs = 0;
 
-float g_sensorValues[SENSOR_COUNT][GRAPH_BUFFER_SIZE];
-int g_sensorValueIndex = 0;
+RingBuffer g_sensorValues[SENSOR_COUNT];
 
 float g_dataMinTemp = 9999.0f;
 float g_dataMaxTemp = -9999.0f;
@@ -63,10 +63,23 @@ SamplingFrequency nextSamplingFreq(SamplingFrequency current) {
   }
 }
 
+unsigned long getSamplingIntervalMs() {
+  switch (g_samplingFreq) {
+    case SAMPLING_FREQ_1S:    return 1000UL;
+    case SAMPLING_FREQ_5S:    return 5000UL;
+    case SAMPLING_FREQ_10S:   return 10000UL;
+    case SAMPLING_FREQ_60S:   return 60000UL;
+    case SAMPLING_FREQ_600S:  return 600000UL;
+    case SAMPLING_FREQ_3600S: return 3600000UL;
+    default:                  return 1000UL;
+  }
+}
+
 // Clear all recorded temperature data
 void clearRecordedData() {
-  memset(g_sensorValues, 0, sizeof(g_sensorValues));
-  g_sensorValueIndex = 0;
+  for (int i = 0; i < SENSOR_COUNT; ++i) {
+    g_sensorValues[i].clear();
+  }
   g_dataMinTemp = DS18B20_MAX_TEMP;
   g_dataMaxTemp = DS18B20_MIN_TEMP;
   g_graphMinTemp = DS18B20_MAX_TEMP;

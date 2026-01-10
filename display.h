@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+class RingBuffer;
+
 // Draw 2-line status (mode/channel + sensor values)
 void drawStatusLine(const float tempsC[], int count);
 
@@ -10,7 +12,7 @@ void drawStatusLine(const float tempsC[], int count);
 void drawGraphAxis(float minTemp, float maxTemp);
 
 // Draw temperature/time graph data
-void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp, uint16_t color);
+void drawGraph(const RingBuffer& buffer, float minTemp, float maxTemp, uint16_t color, size_t index = 0);
 
 // Update the graph range based on current data
 // Returns true if the graph range was updated

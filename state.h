@@ -2,6 +2,7 @@
 #define STATE_H
 
 #include "config.h"
+#include "ring_buffer.h"
 
 // --- Global state variables --------------------------------------------------
 
@@ -23,8 +24,7 @@ extern unsigned long g_lastTempRequestMs;
 extern unsigned long g_lastPresenceRefreshMs;
 
 // Sensor values buffer for graph plotting
-extern float g_sensorValues[SENSOR_COUNT][GRAPH_BUFFER_SIZE];
-extern int g_sensorValueIndex;
+extern RingBuffer g_sensorValues[SENSOR_COUNT];
 
 // Dynamic scaling state
 extern float g_dataMinTemp;
@@ -44,6 +44,9 @@ OperatingMode nextMode(OperatingMode current);
 
 // Cycle to next sampling frequency
 SamplingFrequency nextSamplingFreq(SamplingFrequency current);
+
+// Get the current sampling interval in milliseconds
+unsigned long getSamplingIntervalMs();
 
 // Clear all recorded temperature data
 void clearRecordedData();

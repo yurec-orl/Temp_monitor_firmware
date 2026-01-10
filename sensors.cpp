@@ -30,11 +30,11 @@ void refreshDevicePresence() {
 }
 
 // Read temperatures for all channels into tempsC array
-// Has 750 ms delay before results are available (non-blocking)
+// Has TEMP_REQUEST_DELAY ms delay before results are available (non-blocking)
 // Return true if result has been returned
 bool readTemperatures(float tempsC[], int count) {
-  // This function will make a request temp call for each channel.
-  // After that, it will wait (non-blocking) for 750 ms and then read the results.
+  // Make a request temp call for each channel.
+  // After that, wait (non-blocking) for TEMP_REQUEST_DELAY ms and then read the results.
   static bool requestInProgress = false;
   // Last request timestamp
   static unsigned long lastRequestTime = 0;
@@ -48,7 +48,7 @@ bool readTemperatures(float tempsC[], int count) {
     }
     requestInProgress = true;
     lastRequestTime = millis();
-  } else if (millis() - lastRequestTime > 750) {
+  } else if (millis() - lastRequestTime > TEMP_REQUEST_DELAY) {
     // 3) Read results from each bus (or mark as disconnected if no device)
     for (int i = 0; i < count && i < SENSOR_COUNT; ++i) {
       if (g_channelHasDevice[i] == 2) {
