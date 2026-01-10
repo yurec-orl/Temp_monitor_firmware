@@ -16,8 +16,7 @@ extern SamplingFrequency g_samplingFreq;
 extern DisplayChannel g_displayedChannel;
 
 // Per-channel presence flags (updated via refreshDevicePresence())
-// Flag becomes 1 when device is detected, 2 after first reading.
-extern uint8_t g_channelHasDevice[SENSOR_COUNT];
+extern bool g_channelHasDevice[SENSOR_COUNT];
 
 // Timing for temperature refresh
 extern unsigned long g_lastTempRequestMs;

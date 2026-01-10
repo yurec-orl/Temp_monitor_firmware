@@ -7,7 +7,7 @@ OperatingMode g_mode = MODE_RECORD;
 SamplingFrequency g_samplingFreq = SAMPLING_FREQ_1S;
 DisplayChannel g_displayedChannel = CHANNEL_ALL;
 
-uint8_t g_channelHasDevice[SENSOR_COUNT] = { 0, 0, 0, 0 };
+bool g_channelHasDevice[SENSOR_COUNT] = { false, false, false, false };
 
 unsigned long g_lastTempRequestMs = 0;
 unsigned long g_lastPresenceRefreshMs = 0;

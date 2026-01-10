@@ -36,6 +36,12 @@ void handleRecordMode(const float tempsC[])
     for (int i = 0; i < SENSOR_COUNT; ++i)
     {
         float v = tempsC[i];
+
+        if (v == 85.0 && g_sensorValues[i].getLatest() == DEVICE_DISCONNECTED_C)
+        {
+            v = DEVICE_DISCONNECTED_C;      // First reading after hot-plug is incorrect
+        }
+
         g_sensorValues[i].add(v);
 
         if (v != DEVICE_DISCONNECTED_C)

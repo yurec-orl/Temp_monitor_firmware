@@ -13,19 +13,15 @@ void refreshDevicePresence() {
     int count = g_sensors[i]->getDeviceCount();
     bool present = (count > 0);
 
-    if (present != (g_channelHasDevice[i]?true:false)) {
+    if (present != g_channelHasDevice[i]) {
       // Presence changed; log it once
       Serial.print("Channel ");
       Serial.print(i + 1);
       Serial.print(present ? " attached" : " detached");
       Serial.println();
     }
-
-    if (!present) {
-      g_channelHasDevice[i] = 0; // No device
-    } else if (!g_channelHasDevice[i]) {
-      g_channelHasDevice[i] = 1;
-    }
+    
+    g_channelHasDevice[i] = present;
   }
 }
 
@@ -51,11 +47,8 @@ bool readTemperatures(float tempsC[], int count) {
   } else if (millis() - lastRequestTime > TEMP_REQUEST_DELAY) {
     // 3) Read results from each bus (or mark as disconnected if no device)
     for (int i = 0; i < count && i < SENSOR_COUNT; ++i) {
-      if (g_channelHasDevice[i] == 2) {
+      if (g_channelHasDevice[i]) {
         tempsC[i] = g_sensors[i]->getTempCByIndex(0);
-      } else if (g_channelHasDevice[i] == 1) {
-        tempsC[i] = DEVICE_DISCONNECTED_C;      // Sensor is still initializing
-        g_channelHasDevice[i] = 2;
       } else {
         tempsC[i] = DEVICE_DISCONNECTED_C;
       }
