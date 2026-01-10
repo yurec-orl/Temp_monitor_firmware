@@ -1,0 +1,29 @@
+# VSCode Arduino extension configuration
+.vscode/arduino.json
+.vscode/c_cpp_properties.json
+
+# VSCode settings (optional - uncomment if you want to ignore)
+# .vscode/settings.json
+
+# Compiled output
+*.elf
+*.hex
+*.bin
+*.o
+*.a
+
+# Build directories
+build/
+.build/
+
+# Arduino IDE
+*.ino.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*~
+*.bak
+*.tmp
