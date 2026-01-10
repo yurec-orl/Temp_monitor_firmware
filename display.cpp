@@ -3,6 +3,9 @@
 #include "state.h"
 #include <Arduino.h>
 
+// Enable profiling output (comment out to disable)
+//#define ENABLE_DISPLAY_PROFILING
+
 // Draw 2-line status at top of the content area
 void drawStatusLine(const float tempsC[], int count) {
   const int16_t baseX = 2;
@@ -100,6 +103,10 @@ void formatTimeDuration(int seconds, char* buffer, size_t bufSize) {
 }
 
 void drawGraphAxis(float minTemp, float maxTemp) {
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long startTime = millis();
+#endif
+  
   // Reserve top area for status lines; graph starts below
   const int16_t x0 = GRAPH_LEFT_MARGIN;
   const int16_t x1 = tft.width() - GRAPH_RIGHT_MARGIN;   // max time
@@ -167,9 +174,20 @@ void drawGraphAxis(float minTemp, float maxTemp) {
     tft.setCursor(x - textWidth / 2, yBottom + 2);
     tft.print(timeBuffer);
   }
+  
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long elapsedTime = millis() - startTime;
+  Serial.print("[PROFILE] drawGraphAxis: ");
+  Serial.print(elapsedTime);
+  Serial.println(" ms");
+#endif
 }
 
 void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp, uint16_t color) {
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long startTime = millis();
+#endif
+  
   if (count <= 1) return;
 
   const int16_t x0 = GRAPH_LEFT_MARGIN;
@@ -222,6 +240,15 @@ void drawGraph(const float tempsC[], int count, float minTemp, float maxTemp, ui
     prevY = y;
     havePrev = true;
   }
+  
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long elapsedTime = millis() - startTime;
+  Serial.print("[PROFILE] drawGraph (");
+  Serial.print(visibleCount);
+  Serial.print(" points): ");
+  Serial.print(elapsedTime);
+  Serial.println(" ms");
+#endif
 }
 
 // Update the graph range based on current data
@@ -284,6 +311,10 @@ void clearGraphArea() {
 
 // Redraw the entire graph for currently selected channel
 void redrawGraph() {
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long startTime = millis();
+#endif
+  
   clearGraphArea();
   drawGraphAxis(g_graphMinTemp, g_graphMaxTemp);
 
@@ -297,6 +328,13 @@ void redrawGraph() {
     int channelIndex = static_cast<int>(g_displayedChannel);
     drawGraph(g_sensorValues[channelIndex], g_sensorValueIndex, g_graphMinTemp, g_graphMaxTemp, g_channelColors[channelIndex]);
   }
+  
+#ifdef ENABLE_DISPLAY_PROFILING
+  unsigned long elapsedTime = millis() - startTime;
+  Serial.print("[PROFILE] redrawGraph (total): ");
+  Serial.print(elapsedTime);
+  Serial.println(" ms");
+#endif
 }
 
 void refreshUI() {
