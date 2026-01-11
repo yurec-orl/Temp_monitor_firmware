@@ -52,4 +52,7 @@ void clearRecordedData();
 // Recalculate min/max from entire dataset
 void recalculateMinMax();
 
+// Pre-fill buffers with test data for debugging (125°C down to 25°C)
+void prefillTestData();
+
 #endif // STATE_H

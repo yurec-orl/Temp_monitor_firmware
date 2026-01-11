@@ -49,6 +49,9 @@ void setup()
   // Initial presence scan
   g_sensorReader.forcePresenceCheck();
 
+  // Pre-fill test data for debugging range shrinking behavior
+  //prefillTestData();
+
   Serial.println("Initialization complete.");
 }
 

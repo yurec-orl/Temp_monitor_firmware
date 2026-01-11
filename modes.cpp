@@ -54,7 +54,8 @@ void handleRecordMode(const float tempsC[])
         g_sensorValues[i].add(v);
 
         // Update running min/max with new value (if valid)
-        if (v != DEVICE_DISCONNECTED_C)
+        // Only do incremental update if we're NOT about to do a full recalc
+        if (!g_needMinMaxRecalc && v != DEVICE_DISCONNECTED_C)
         {
             // Initialize on first valid value
             if (g_dataMinTemp == DS18B20_MAX_TEMP && g_dataMaxTemp == DS18B20_MIN_TEMP)
@@ -64,14 +65,15 @@ void handleRecordMode(const float tempsC[])
             }
             else
             {
-                // Incremental update
+                // Incremental update - only expand, never shrink
                 if (v < g_dataMinTemp) g_dataMinTemp = v;
                 if (v > g_dataMaxTemp) g_dataMaxTemp = v;
             }
         }
     }
 
-    // Full recalculation only when necessary (when old min/max was pushed out)
+    // Full recalculation when necessary (when old min/max was pushed out)
+    // This scans the entire buffer and will correctly shrink the range if needed
     if (g_needMinMaxRecalc)
     {
         recalculateMinMax();

@@ -98,3 +98,44 @@ void recalculateMinMax() {
   
   g_needMinMaxRecalc = false;
 }
+
+// Pre-fill buffers with test data for debugging
+// 200 samples: 125°C down to 25°C at -0.5°C per sample
+// Remaining samples: 25°C flat
+void prefillTestData() {
+  Serial.println("Pre-filling buffers with test data...");
+  
+  // Clear existing data
+  clearRecordedData();
+  
+  // Fill buffer from oldest to newest (buffer will reverse the order)
+  for (int sample = GRAPH_BUFFER_SIZE - 1; sample >= 0; --sample) {
+    float temp;
+    
+    if (sample >= 61) {
+      // Samples 61-260: Linear decrease from 125°C to 25°C
+      // 200 samples total: 125 - (260-sample) * 0.5
+      int sampleIndex = 260 - sample; // 0 to 199
+      temp = 125.0f - (sampleIndex * 0.5f);
+    } else {
+      // Samples 0-60: Flat at 25°C
+      temp = 25.0f;
+    }
+    
+    // Add to all channels
+    for (int i = 0; i < SENSOR_COUNT; ++i) {
+      g_sensorValues[i].add(temp);
+    }
+  }
+  
+  // Recalculate min/max based on test data
+  recalculateMinMax();
+  
+  Serial.print("Test data filled. Min: ");
+  Serial.print(g_dataMinTemp);
+  Serial.print("°C, Max: ");
+  Serial.print(g_dataMaxTemp);
+  Serial.println("°C");
+  Serial.print("Buffer size: ");
+  Serial.println(g_sensorValues[0].size());
+}

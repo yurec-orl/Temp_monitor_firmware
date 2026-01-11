@@ -364,17 +364,7 @@ bool updateGraphRange()
         return false;
     }
 
-    // Check if current data is outside current graph range
-    bool below = g_dataMinTemp < g_graphMinTemp;
-    bool above = g_dataMaxTemp > g_graphMaxTemp;
-
-    if (!below && !above)
-    {
-        // All data still fits in current view; don't change scale
-        return false;
-    }
-
-    // Expand to new range based on data, with some padding
+    // Expand or shrink to new range based on data, with some padding
     float newMin = g_dataMinTemp;
     float newMax = g_dataMaxTemp;
 
