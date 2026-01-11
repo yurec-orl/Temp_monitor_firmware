@@ -37,6 +37,11 @@ void onButton2Pressed()
 void onButton3Pressed()
 {
     Serial.println("Button 3 pressed - Sampling frequency selection");
+    if (g_mode == MODE_RECORD) {
+        // Frequency is fixed in recording mode
+        return;
+    }
+
     // Cycle through all sampling frequencies
     g_samplingFreq = nextSamplingFreq(g_samplingFreq);
     g_sensorReader.requestImmediateReading();   // Force immediate temperature request

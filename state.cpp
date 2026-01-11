@@ -46,11 +46,6 @@ OperatingMode nextMode(OperatingMode current) {
 
 // Cycle to next sampling frequency
 SamplingFrequency nextSamplingFreq(SamplingFrequency current) {
-  if (g_mode == MODE_RECORD) {
-    // In Recording mode, sampling frequency is fixed (no cycling)
-    return current;
-  }
-
   switch(current) {
     case SAMPLING_FREQ_1S:    return SAMPLING_FREQ_5S;
     case SAMPLING_FREQ_5S:    return SAMPLING_FREQ_10S;

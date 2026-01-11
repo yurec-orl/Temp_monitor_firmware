@@ -110,7 +110,10 @@ void SensorReader::updatePresenceDetection(unsigned long presenceInterval) {
 
 // Force immediate presence check
 void SensorReader::forcePresenceCheck() {
-  checkDevicePresence();
+  // Run presence check on all channels at once
+  for (int i = 0; i < SENSOR_COUNT; ++i) {
+    checkDevicePresence();
+  }
   lastPresenceCheckTime = millis();
 }
 
