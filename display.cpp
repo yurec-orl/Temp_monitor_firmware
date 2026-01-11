@@ -373,6 +373,7 @@ bool updateGraphRange()
     };
     
     const SpanConfig spanConfigs[] = {
+        { 5.0f,   1.0f, 5.0f },    // 1-degree marks, align to 5s 
         { 10.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s 
         { 20.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s
         { 50.0f,   5.0f, 10.0f },  // 5-degree marks, align to 10s
