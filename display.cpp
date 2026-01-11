@@ -260,12 +260,10 @@ void drawGraphAxis(float minTemp, float maxTemp)
 #endif
 }
 
-void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t color, size_t offset)
+// Erase and draw segment-by-segment to minimize flicker
+// For each line segment: erase old (offset=1), draw new (offset=0)
+void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t color)
 {
-#ifdef ENABLE_DISPLAY_PROFILING
-    unsigned long startTime = millis();
-#endif
-
     // Minimum 2 samples required for plotting
     if (buffer.size() <= 1) {
         return;
@@ -295,47 +293,65 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
         return yBottom - (int16_t)(norm * graphHeight + 0.5f);
     };
 
-    bool havePrev = false;
-    int16_t prevX = 0;
-    int16_t prevY = 0;
+    // Calculate how many samples to process (display size, not full buffer)
+    int samplesToDraw = min((int)(buffer.size() - 1), GRAPH_DISPLAY_SIZE);
 
-    // Calculate how many samples to draw (display size, not full buffer)
-    int samplesToDraw = min((int)(buffer.size() - offset), GRAPH_DISPLAY_SIZE);
+    // Track previous point for old data (offset=1)
+    bool havePrevOld = false;
+    int16_t prevXOld = 0;
+    int16_t prevYOld = 0;
+
+    // Track previous point for new data (offset=0)
+    bool havePrevNew = false;
+    int16_t prevXNew = 0;
+    int16_t prevYNew = 0;
 
     for (int i = 0; i < samplesToDraw; ++i)
     {
-        // Read from buffer at (offset + i), but calculate X as if starting from 0
-        float val = buffer.get(offset + i);
-
-        if (val == DEVICE_DISCONNECTED_C)
+        // Process old data (offset=1) - erase segment
+        float valOld = buffer.get(1 + i);
+        if (valOld != DEVICE_DISCONNECTED_C)
         {
-            havePrev = false;
-            continue;
+            int16_t x = x0 - i;
+            int16_t y = tempToY(valOld);
+
+            if (havePrevOld)
+            {
+                // Erase old segment in black
+                tft.drawLine(prevXOld, prevYOld, x, y, ILI9341_BLACK);
+            }
+
+            prevXOld = x;
+            prevYOld = y;
+            havePrevOld = true;
+        }
+        else
+        {
+            havePrevOld = false;
         }
 
-        // X coordinate is calculated as if we started from index 0
-        // This ensures alignment between offset=0 and offset=1 draws
-        int16_t x = x0 - i;
-        int16_t y = tempToY(val);
-
-        if (havePrev)
+        // Process new data (offset=0) - draw segment
+        float valNew = buffer.get(0 + i);
+        if (valNew != DEVICE_DISCONNECTED_C)
         {
-            tft.drawLine(prevX, prevY, x, y, color);
-        }
+            int16_t x = x0 - i;
+            int16_t y = tempToY(valNew);
 
-        prevX = x;
-        prevY = y;
-        havePrev = true;
+            if (havePrevNew)
+            {
+                // Draw new segment in color
+                tft.drawLine(prevXNew, prevYNew, x, y, color);
+            }
+
+            prevXNew = x;
+            prevYNew = y;
+            havePrevNew = true;
+        }
+        else
+        {
+            havePrevNew = false;
+        }
     }
-
-#ifdef ENABLE_DISPLAY_PROFILING
-    unsigned long elapsedTime = millis() - startTime;
-    Serial.print("[PROFILE] drawGraph (");
-    Serial.print(visibleCount);
-    Serial.print(" points): ");
-    Serial.print(elapsedTime);
-    Serial.println(" ms");
-#endif
 }
 
 // Update the graph range based on current data

@@ -88,30 +88,20 @@ void handleRecordMode(const float tempsC[])
     {
         clearGraphArea();
     }
-    drawGraphAxis(g_graphMinTemp, g_graphMaxTemp);
 
-    // Range didn't change - use offset-based erase-then-draw to minimize flicker
-    // Buffer has size GRAPH_BUFFER_SIZE (261). After add(), buffer[1..260] contains
-    // the old state that's currently on screen. Erase it using offset=1, then draw
-    // new data from buffer[0..259] using offset=0.
+    drawGraphAxis(g_graphMinTemp, g_graphMaxTemp);
+    
     if (g_displayedChannel == CHANNEL_ALL)
     {
-        // Erase and redraw each channel individually to minimize flicker per channel
         for (int i = SENSOR_COUNT - 1; i >= 0; --i)
         {
-            // Erase old graph using offset=1 (reads buffer[1..260] - old state)
-            drawGraph(g_sensorValues[i], g_graphMinTemp, g_graphMaxTemp, ILI9341_BLACK, 1);
-            // Draw new graph using offset=0 (reads buffer[0..259] - new state)
-            drawGraph(g_sensorValues[i], g_graphMinTemp, g_graphMaxTemp, g_channelColors[i], 0);
+            drawGraph(g_sensorValues[i], g_graphMinTemp, g_graphMaxTemp, g_channelColors[i]);
         }
     }
     else
     {
         int channelIndex = static_cast<int>(g_displayedChannel);
-        // Erase old graph using offset=1
-        drawGraph(g_sensorValues[channelIndex], g_graphMinTemp, g_graphMaxTemp, ILI9341_BLACK, 1);
-        // Draw new graph using offset=0
-        drawGraph(g_sensorValues[channelIndex], g_graphMinTemp, g_graphMaxTemp, g_channelColors[channelIndex], 0);
+        drawGraph(g_sensorValues[channelIndex], g_graphMinTemp, g_graphMaxTemp, g_channelColors[channelIndex]);
     }
 
     // Update status line
