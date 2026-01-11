@@ -364,28 +364,116 @@ bool updateGraphRange()
         return false;
     }
 
-    // Expand or shrink to new range based on data, with some padding
-    float newMin = g_dataMinTemp;
-    float newMax = g_dataMaxTemp;
-
-    // Add 10% margin on each side
-    float span = newMax - newMin;
-    if (span < 10.0f)
-        span = 10.0f; // avoid zero/very small span
-
-    float pad = span * 0.1f;
-    newMin -= pad;
-    newMax += pad;
-
+    // Define valid span sizes with their mark intervals
+    // Each span has exactly 10 intervals with nice round marks
+    struct SpanConfig {
+        float span;           // Total temperature span
+        float markInterval;   // Interval between marks
+        float alignTo;        // Align min/max to multiples of this value
+    };
+    
+    const SpanConfig spanConfigs[] = {
+        { 10.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s 
+        { 20.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s
+        { 50.0f,   5.0f, 10.0f },  // 5-degree marks, align to 10s
+        {100.0f,  10.0f, 10.0f },  // 10-degree marks, align to 10s
+        {200.0f,  20.0f, 20.0f },  // 20-degree marks, align to 20s
+        {500.0f,  50.0f, 50.0f },  // 50-degree marks, align to 50s
+    };
+    
+    const int numConfigs = sizeof(spanConfigs) / sizeof(spanConfigs[0]);
+    
+    // Add padding to data range
+    const float PADDING_PERCENT = 0.05f; // 5% padding on each side
+    float dataSpan = g_dataMaxTemp - g_dataMinTemp;
+    float padding = dataSpan * PADDING_PERCENT;
+    if (padding < 1.0f) padding = 1.0f; // Minimum 1 degree padding
+    
+    float requiredMin = g_dataMinTemp - padding;
+    float requiredMax = g_dataMaxTemp + padding;
+    float requiredSpan = requiredMax - requiredMin;
+    
+    // Find the smallest span that can contain the data
+    // Try each span configuration, attempting to fit the data with alignment
+    const SpanConfig* selectedConfig = nullptr;
+    float newMin = 0.0f;
+    float newMax = 0.0f;
+    
+    for (int configIndex = 0; configIndex < numConfigs; ++configIndex) {
+        const SpanConfig* testConfig = &spanConfigs[configIndex];
+        
+        // Skip configs that are too small for the required span
+        if (testConfig->span < requiredSpan) {
+            continue;
+        }
+        
+        // Calculate the center of the required range
+        float center = (requiredMin + requiredMax) / 2.0f;
+        
+        // Calculate initial min/max centered around the data
+        float testMin = center - testConfig->span / 2.0f;
+        float testMax = center + testConfig->span / 2.0f;
+        
+        // Align min to nice round number (round down to multiple of alignTo)
+        testMin = floorf(testMin / testConfig->alignTo) * testConfig->alignTo;
+        
+        // Set max to exactly min + span (ensures exactly 10 intervals)
+        testMax = testMin + testConfig->span;
+        
+        // Adjust range to ensure it contains the required data
+        // Try shifting by alignTo increments
+        int maxShiftAttempts = 20; // Prevent infinite loop
+        int shiftCount = 0;
+        bool dataFits = false;
+        
+        while (shiftCount < maxShiftAttempts) {
+            // Check if data fits in current range
+            if (requiredMin >= testMin && requiredMax <= testMax) {
+                dataFits = true;
+                break;
+            }
+            
+            // Determine which direction to shift
+            if (requiredMin < testMin) {
+                // Data extends below range - shift down
+                testMin -= testConfig->alignTo;
+                testMax -= testConfig->alignTo;
+            } else if (requiredMax > testMax) {
+                // Data extends above range - shift up
+                testMin += testConfig->alignTo;
+                testMax += testConfig->alignTo;
+            }
+            
+            shiftCount++;
+        }
+        
+        // If data fits with this config, use it
+        if (dataFits) {
+            selectedConfig = testConfig;
+            newMin = testMin;
+            newMax = testMax;
+            break;
+        }
+        
+        // Otherwise, try next larger span
+    }
+    
+    // If no config worked (shouldn't happen), use the largest one
+    if (selectedConfig == nullptr) {
+        selectedConfig = &spanConfigs[numConfigs - 1];
+        float center = (requiredMin + requiredMax) / 2.0f;
+        newMin = center - selectedConfig->span / 2.0f;
+        newMax = center + selectedConfig->span / 2.0f;
+        newMin = floorf(newMin / selectedConfig->alignTo) * selectedConfig->alignTo;
+        newMax = newMin + selectedConfig->span;
+    }
+    
     // Clamp to DS18B20 physical limits
-    if (newMin < DS18B20_MIN_TEMP)
-        newMin = DS18B20_MIN_TEMP;
-    if (newMax > DS18B20_MAX_TEMP)
-        newMax = DS18B20_MAX_TEMP;
-
-    // Round to nice multiples of 10
-    newMin = floorf(newMin / 10.0f) * 10.0f;
-    newMax = ceilf(newMax / 10.0f) * 10.0f;
+    // Disabled for now - clamping messes up ranges and axis marks and makes readjustment too complex.
+    // if (newMin < DS18B20_MIN_TEMP)
+    //     newMin = DS18B20_MIN_TEMP;
+    // if (newMax > DS18B20_MAX_TEMP)
+    //     newMax = DS18B20_MAX_TEMP;
 
     bool result = false;
 
