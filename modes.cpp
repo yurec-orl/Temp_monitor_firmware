@@ -76,11 +76,6 @@ void handleRecordMode(const float tempsC[])
     g_graphMinTemp = DS18B20_MAX_TEMP;
     g_graphMaxTemp = DS18B20_MIN_TEMP;
 
-    // if (updateGraphRange())
-    // {
-    //     // Clear the graph area if the range was updated - redraw whole graph with new range
-    //     tft.fillRect(0, 0, tft.width(), tft.height(), ILI9341_BLACK);
-    // }
     updateGraphRange();
 
     drawGraphAxis(g_graphMinTemp, g_graphMaxTemp);

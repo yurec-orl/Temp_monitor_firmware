@@ -2,7 +2,11 @@
 #include "hardware.h"
 #include "state.h"
 #include "display.h"
+#include "sensor_reader.h"
 #include <Arduino.h>
+
+// External reference to the global sensor reader
+extern SensorReader g_sensorReader;
 
 // --- Button callback implementations -----------------------------------------
 
@@ -25,9 +29,8 @@ void onButton2Pressed()
     // Clear all recorded data and screen
     clearRecordedData();
     clearScreen();
-    // Force refresh
-    g_lastPresenceRefreshMs = 0;
-    g_lastTempRequestMs = 0;
+    // Force immediate sensor reading
+    g_sensorReader.requestImmediateReading();
 }
 
 // Button 3 callback - Sampling frequency selection
@@ -36,7 +39,7 @@ void onButton3Pressed()
     Serial.println("Button 3 pressed - Sampling frequency selection");
     // Cycle through all sampling frequencies
     g_samplingFreq = nextSamplingFreq(g_samplingFreq);
-    g_lastTempRequestMs = millis() - getSamplingIntervalMs();   // Force immediate temperature request
+    g_sensorReader.requestImmediateReading();   // Force immediate temperature request
 
     refreshUI();
 }

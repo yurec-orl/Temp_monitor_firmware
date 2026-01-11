@@ -6,10 +6,15 @@
 #include "config.h"
 #include "hardware.h"
 #include "state.h"
-#include "sensors.h"
+#include "sensor_reader.h"
 #include "display.h"
 #include "buttons.h"
 #include "modes.h"
+
+// --- Global instances --------------------------------------------------------
+
+// Sensor reading state machine
+SensorReader g_sensorReader;
 
 // --- Setup and Main Loop -----------------------------------------------------
 
@@ -42,72 +47,65 @@ void setup()
   initButtons();
 
   // Initial presence scan
-  refreshDevicePresence();
+  g_sensorReader.forcePresenceCheck();
 
   Serial.println("Initialization complete.");
 }
 
 void loop()
 {
-  static bool b_tempUpdated = false;
   unsigned long now = millis();
 
   // Read button states (must be called frequently for debouncing)
   readButtons();
 
-  // Periodically refresh presence to support hot-plug
-  if (now - g_lastPresenceRefreshMs >= PRESENCE_REFRESH_INTERVAL_MS) {
-    g_lastPresenceRefreshMs = now;
-    refreshDevicePresence();
-  }
+  // Update hot-plug detection (sensor presence checking)
+  // Automatically skipped during temperature conversion to avoid bus interference
+  g_sensorReader.updatePresenceDetection(PRESENCE_REFRESH_INTERVAL_MS);
 
-  float tempsC[SENSOR_COUNT];
-
-  // If has not updated temperature readings yet, call readTemperatures() until successfully updated
-  // Otherwise, stop and wait until readings are consumed
-  if (!b_tempUpdated && (now - g_lastTempRequestMs >= getSamplingIntervalMs() - TEMP_REQUEST_DELAY)) {
-    b_tempUpdated = readTemperatures(tempsC, SENSOR_COUNT);
-  }
-
-  if (b_tempUpdated && (now - g_lastTempRequestMs >= getSamplingIntervalMs())) {
-    b_tempUpdated = false;
-    g_lastTempRequestMs = now;
-
-    // Mode-specific handling
-    switch (g_mode)
-    {
-    case MODE_STANDBY:
-      handleStandbyMode(tempsC);
-      break;
-    case MODE_RECORD:
-      handleRecordMode(tempsC);
-      break;
-    case MODE_WIFI:
-      handleWifiMode(tempsC);
-      break;
-    default:
-      break;
-    }
-
-    // Serial debug
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.print("Temps: ");
-    for (int i = 0; i < SENSOR_COUNT; ++i) {
-      Serial.print("CH");
-      Serial.print(i + 1);
-      Serial.print("=");
-      if (!g_channelHasDevice[i] || tempsC[i] == DEVICE_DISCONNECTED_C)
+  // Update sensor reading state machine
+  // This must be called frequently to advance the state machine
+  if (g_sensorReader.update(getSamplingIntervalMs())) {
+    // New temperature data is ready
+    float tempsC[SENSOR_COUNT];
+    
+    if (g_sensorReader.getReadings(tempsC, SENSOR_COUNT)) {
+      // Mode-specific handling
+      switch (g_mode)
       {
-        Serial.print("N/A ");
+      case MODE_STANDBY:
+        handleStandbyMode(tempsC);
+        break;
+      case MODE_RECORD:
+        handleRecordMode(tempsC);
+        break;
+      case MODE_WIFI:
+        handleWifiMode(tempsC);
+        break;
+      default:
+        break;
       }
-      else
-      {
-        Serial.print(tempsC[i]);
-        Serial.print("C ");
+
+      // Serial debug
+      Serial.print("[");
+      Serial.print(millis());
+      Serial.print("] ");
+      Serial.print("Temps: ");
+      for (int i = 0; i < SENSOR_COUNT; ++i) {
+        Serial.print("CH");
+        Serial.print(i + 1);
+        Serial.print("=");
+        if (!g_channelHasDevice[i] || tempsC[i] == DEVICE_DISCONNECTED_C)
+        {
+          Serial.print("N/A ");
+        }
+        else
+        {
+          Serial.print(tempsC[i]);
+          Serial.print("C ");
+        }
       }
+      Serial.println();
     }
-    Serial.println();
   }
 }

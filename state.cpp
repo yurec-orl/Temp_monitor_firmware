@@ -9,9 +9,6 @@ DisplayChannel g_displayedChannel = CHANNEL_ALL;
 
 bool g_channelHasDevice[SENSOR_COUNT] = { false, false, false, false };
 
-unsigned long g_lastTempRequestMs = 0;
-unsigned long g_lastPresenceRefreshMs = 0;
-
 RingBuffer g_sensorValues[SENSOR_COUNT];
 
 float g_dataMinTemp = 9999.0f;

@@ -18,10 +18,6 @@ extern DisplayChannel g_displayedChannel;
 // Per-channel presence flags (updated via refreshDevicePresence())
 extern bool g_channelHasDevice[SENSOR_COUNT];
 
-// Timing for temperature refresh
-extern unsigned long g_lastTempRequestMs;
-extern unsigned long g_lastPresenceRefreshMs;
-
 // Sensor values buffer for graph plotting
 extern RingBuffer g_sensorValues[SENSOR_COUNT];
 
