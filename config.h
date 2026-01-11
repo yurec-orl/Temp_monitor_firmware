@@ -33,9 +33,10 @@ enum DisplayChannel {
 // Number of DS18B20 sensor channels
 constexpr int SENSOR_COUNT = 4;
 
-// Size of graph buffer (number of samples) - equals to number of pixels on graph
-// 1 pixel = 1 sample
-constexpr int GRAPH_BUFFER_SIZE = 260;
+// Size of graph buffer (number of samples to display)
+// Buffer has +1 extra element to store previous state for flicker-free erasing
+constexpr int GRAPH_DISPLAY_SIZE = 260;  // Number of pixels on graph
+constexpr int GRAPH_BUFFER_SIZE = GRAPH_DISPLAY_SIZE + 1;  // Actual buffer capacity - keep one oldest sample for erasing old graph
 
 // Graph layout margins
 constexpr int16_t GRAPH_TOP_MARGIN    = 40;

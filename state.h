@@ -25,6 +25,9 @@ extern RingBuffer g_sensorValues[SENSOR_COUNT];
 extern float g_dataMinTemp;
 extern float g_dataMaxTemp;
 
+// Flag indicating if full min/max recalculation is needed
+extern bool g_needMinMaxRecalc;
+
 // Current graph range actually used for drawing
 extern float g_graphMinTemp;
 extern float g_graphMaxTemp;
@@ -45,5 +48,8 @@ unsigned long getSamplingIntervalMs();
 
 // Clear all recorded temperature data
 void clearRecordedData();
+
+// Recalculate min/max from entire dataset
+void recalculateMinMax();
 
 #endif // STATE_H

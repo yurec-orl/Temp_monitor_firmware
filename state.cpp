@@ -14,6 +14,8 @@ RingBuffer g_sensorValues[SENSOR_COUNT];
 float g_dataMinTemp = 9999.0f;
 float g_dataMaxTemp = -9999.0f;
 
+bool g_needMinMaxRecalc = false;
+
 float g_graphMinTemp = DS18B20_MAX_TEMP;
 float g_graphMaxTemp = DS18B20_MIN_TEMP;
 
@@ -81,4 +83,23 @@ void clearRecordedData() {
   g_dataMaxTemp = DS18B20_MIN_TEMP;
   g_graphMinTemp = DS18B20_MAX_TEMP;
   g_graphMaxTemp = DS18B20_MIN_TEMP;
+  g_needMinMaxRecalc = false;
+}
+
+// Recalculate min/max from entire dataset
+void recalculateMinMax() {
+  g_dataMinTemp = DS18B20_MAX_TEMP;
+  g_dataMaxTemp = DS18B20_MIN_TEMP;
+  
+  for (int i = 0; i < SENSOR_COUNT; ++i) {
+    for (int j = 0; j < g_sensorValues[i].size(); ++j) {
+      float v = g_sensorValues[i].get(j);
+      if (v != DEVICE_DISCONNECTED_C) {
+        if (v < g_dataMinTemp) g_dataMinTemp = v;
+        if (v > g_dataMaxTemp) g_dataMaxTemp = v;
+      }
+    }
+  }
+  
+  g_needMinMaxRecalc = false;
 }

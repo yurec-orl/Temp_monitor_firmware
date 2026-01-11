@@ -12,7 +12,8 @@ void drawStatusLine(const float tempsC[], int count);
 void drawGraphAxis(float minTemp, float maxTemp);
 
 // Draw temperature/time graph data
-void drawGraph(const RingBuffer& buffer, float minTemp, float maxTemp, uint16_t color, size_t index = 0);
+// offset: starting index in buffer (0=newest data, 1=previous state for erasing)
+void drawGraph(const RingBuffer& buffer, float minTemp, float maxTemp, uint16_t color, size_t offset = 0);
 
 // Update the graph range based on current data
 // Returns true if the graph range was updated

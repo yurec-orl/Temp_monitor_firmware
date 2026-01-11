@@ -260,7 +260,7 @@ void drawGraphAxis(float minTemp, float maxTemp)
 #endif
 }
 
-void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t color, size_t index)
+void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t color, size_t offset)
 {
 #ifdef ENABLE_DISPLAY_PROFILING
     unsigned long startTime = millis();
@@ -299,9 +299,13 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
     int16_t prevX = 0;
     int16_t prevY = 0;
 
-    for (int i = index; i < buffer.size(); ++i)
+    // Calculate how many samples to draw (display size, not full buffer)
+    int samplesToDraw = min((int)(buffer.size() - offset), GRAPH_DISPLAY_SIZE);
+
+    for (int i = 0; i < samplesToDraw; ++i)
     {
-        float val = buffer.get(i);
+        // Read from buffer at (offset + i), but calculate X as if starting from 0
+        float val = buffer.get(offset + i);
 
         if (val == DEVICE_DISCONNECTED_C)
         {
@@ -309,7 +313,9 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
             continue;
         }
 
-        int16_t x = x0 - (i + index);
+        // X coordinate is calculated as if we started from index 0
+        // This ensures alignment between offset=0 and offset=1 draws
+        int16_t x = x0 - i;
         int16_t y = tempToY(val);
 
         if (havePrev)
