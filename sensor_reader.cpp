@@ -2,7 +2,7 @@
 #include "hardware.h"
 #include "state.h"
 
-// Constructor
+// Constructor.
 SensorReader::SensorReader() 
   : state(STATE_IDLE),
     conversionStartTime(0),
@@ -10,20 +10,20 @@ SensorReader::SensorReader()
     lastPresenceCheckTime(0),
     nextPresenceCheckIndex(0)
 {
-  // Initialize readings buffer with invalid values
+  // Initialize readings buffer with invalid values.
   for (int i = 0; i < SENSOR_COUNT; i++) {
     lastReadings[i] = DEVICE_DISCONNECTED_C;
   }
 }
 
-// Main update function - call this in loop()
+// Main update function - call this in loop().
 bool SensorReader::update(unsigned long samplingInterval) {
   unsigned long now = millis();
   
   switch (state) {
     case STATE_IDLE:
-      // Check if it's time to start a new reading cycle
-      // Start conversion TEMP_REQUEST_DELAY ms before the actual interval expires
+      // Check if it's time to start a new reading cycle.
+      // Start conversion TEMP_REQUEST_DELAY ms before the actual interval expires.
       if (now - lastCompletedReadingTime >= samplingInterval - TEMP_REQUEST_DELAY) {
         startConversion();
         state = STATE_CONVERSION;
@@ -31,72 +31,72 @@ bool SensorReader::update(unsigned long samplingInterval) {
       return false;
       
     case STATE_CONVERSION:
-      // Check if enough time has elapsed for conversion to complete
+      // Check if enough time has elapsed for conversion to complete.
       if (now - conversionStartTime >= TEMP_REQUEST_DELAY) {
         readSensors();
         state = STATE_READY;
         lastCompletedReadingTime = now;
-        return true;  // New data available
+        return true;  // New data available.
       }
       return false;
       
     case STATE_READY:
-      // Data has been made available but not yet consumed
-      // Stay in this state until getReadings() is called
-      // This prevents starting a new conversion before data is consumed
+      // Data has been made available but not yet consumed.
+      // Stay in this state until getReadings() is called.
+      // This prevents starting a new conversion before data is consumed.
       return true;
       
     default:
-      // Should never happen, reset to safe state
+      // Should never happen, reset to safe state.
       reset();
       return false;
   }
 }
 
-// Check if conversion is in progress
+// Check if conversion is in progress.
 bool SensorReader::isConversionInProgress() const {
   return (state == STATE_CONVERSION);
 }
 
-// Get the latest readings
+// Get the latest readings.
 bool SensorReader::getReadings(float tempsC[], int count) {
   if (state != STATE_READY) {
-    return false;  // No data available
+    return false;  // No data available.
   }
   
-  // Copy readings to output array
+  // Copy readings to output array.
   int copyCount = (count < SENSOR_COUNT) ? count : SENSOR_COUNT;
   for (int i = 0; i < copyCount; i++) {
     tempsC[i] = lastReadings[i];
   }
   
-  // Transition back to IDLE after data is consumed
+  // Transition back to IDLE after data is consumed.
   state = STATE_IDLE;
   
   return true;
 }
 
-// Force immediate reading
+// Force immediate reading.
 void SensorReader::requestImmediateReading() {
-  // Reset the timer to force update() to trigger on next call
+  // Reset the timer to force update() to trigger on next call.
   lastCompletedReadingTime = millis() - getSamplingIntervalMs();
   state = STATE_IDLE;
 }
 
-// Reset state machine
+// Reset state machine.
 void SensorReader::reset() {
   state = STATE_IDLE;
   conversionStartTime = 0;
 }
 
-// Get last reading timestamp
+// Get last reading timestamp.
 unsigned long SensorReader::getLastReadingTime() const {
   return lastCompletedReadingTime;
 }
 
-// Update presence detection (hot-plug support)
+// Update presence detection (hot-plug support).
 void SensorReader::updatePresenceDetection(unsigned long presenceInterval) {
-  // Never check presence during conversion - it interferes with OneWire bus
+  // Never check presence during conversion - it interferes with OneWire bus.
   if (state == STATE_CONVERSION) {
     return;
   }
@@ -108,9 +108,9 @@ void SensorReader::updatePresenceDetection(unsigned long presenceInterval) {
   }
 }
 
-// Force immediate presence check
+// Force immediate presence check.
 void SensorReader::forcePresenceCheck() {
-  // Run presence check on all channels at once
+  // Run presence check on all channels at once.
   for (int i = 0; i < SENSOR_COUNT; ++i) {
     checkDevicePresence();
   }
@@ -119,7 +119,7 @@ void SensorReader::forcePresenceCheck() {
 
 // --- Private methods ---
 
-// Start temperature conversion on all active sensors
+// Start temperature conversion on all active sensors.
 void SensorReader::startConversion() {
   conversionStartTime = millis();
   
@@ -130,7 +130,7 @@ void SensorReader::startConversion() {
   }
 }
 
-// Read temperature values from all sensors
+// Read temperature values from all sensors.
 void SensorReader::readSensors() {
   for (int i = 0; i < SENSOR_COUNT; i++) {
     if (g_channelHasDevice[i]) {
@@ -139,7 +139,7 @@ void SensorReader::readSensors() {
       if (validateReading(temp, i)) {
         lastReadings[i] = temp;
       } else {
-        // Keep previous value on suspicious reading
+        // Keep previous value on suspicious reading.
         Serial.print("Warning: CH");
         Serial.print(i + 1);
         Serial.print(" suspicious reading: ");
@@ -152,32 +152,32 @@ void SensorReader::readSensors() {
   }
 }
 
-// Validate temperature reading
+// Validate temperature reading.
 bool SensorReader::validateReading(float temp, int channel) {
-  // Check if value is within valid range
-  if (temp > DS18B20_MAX_TEMP || temp < DS18B20_MIN_TEMP) {  // DS18B20 max range is -55 to +125°C
+  // Check if value is within valid range.
+  if (temp > DS18B20_MAX_TEMP || temp < DS18B20_MIN_TEMP) {  // DS18B20 max range is -55 to +125°C.
     return false;
   }
   
   return true;
 }
 
-// Check device presence on all channels
+// Check device presence on all channels.
 void SensorReader::checkDevicePresence() {
-  // Check only ONE sensor per call to minimize blocking time
-  // This spreads the load across multiple presence check intervals
+  // Check only ONE sensor per call to minimize blocking time.
+  // This spreads the load across multiple presence check intervals.
   int i = nextPresenceCheckIndex;
   
-  // Call begin() to force fresh OneWire bus scan for this channel
-  // This is necessary because DallasTemperature library caches device addresses
+  // Call begin() to force fresh OneWire bus scan for this channel.
+  // This is necessary because DallasTemperature library caches device addresses.
   g_sensors[i]->begin();
 
-  // getDeviceCount() performs a OneWire search
+  // getDeviceCount() performs a OneWire search.
   int count = g_sensors[i]->getDeviceCount();
   bool present = (count > 0);
 
   if (present != g_channelHasDevice[i]) {
-    // Presence changed; log it once
+    // Presence changed; log it once.
     Serial.print("Channel ");
     Serial.print(i + 1);
     Serial.print(present ? " attached" : " detached");
@@ -186,6 +186,6 @@ void SensorReader::checkDevicePresence() {
   
   g_channelHasDevice[i] = present;
   
-  // Move to next sensor for next check (round-robin)
+  // Move to next sensor for next check (round-robin).
   nextPresenceCheckIndex = (nextPresenceCheckIndex + 1) % SENSOR_COUNT;
 }

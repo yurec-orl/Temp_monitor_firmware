@@ -5,10 +5,10 @@
 #include "state.h"
 #include "ring_buffer.h"
 
-// Enable profiling output (comment out to disable)
+// Enable profiling output (comment out to disable).
 // #define ENABLE_DISPLAY_PROFILING
 
-// Draw 2-line status at top of the content area
+// Draw 2-line status at top of the content area.
 void drawStatusLine(const float tempsC[], int count)
 {
     const int16_t baseX = 2;
@@ -16,11 +16,11 @@ void drawStatusLine(const float tempsC[], int count)
 
     tft.setTextSize(1);
 
-    // Row 1: MODE + CHANNEL
+    // Row 1: MODE + CHANNEL.
     tft.setCursor(baseX, baseY);
     tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
 
-    // Mode
+    // Mode.
     tft.print("MODE: ");
     switch (g_mode)
     {
@@ -38,7 +38,7 @@ void drawStatusLine(const float tempsC[], int count)
         break;
     }
 
-    // Channel to display on graph
+    // Channel to display on graph.
     tft.print("  CH: ");
     switch (g_displayedChannel)
     {
@@ -62,7 +62,7 @@ void drawStatusLine(const float tempsC[], int count)
         break;
     }
 
-    // Sampling rate
+    // Sampling rate.
     tft.print("  FREQ: ");
     switch (g_samplingFreq)
     {
@@ -92,24 +92,24 @@ void drawStatusLine(const float tempsC[], int count)
     if (g_mode == MODE_RECORD)
     {
         tft.print("  LOG: ");
-        // Log number, 4 digits, zero padding
+        // Log number, 4 digits, zero padding.
         char buf[8];
         snprintf(buf, sizeof(buf), "%04d", g_logger.getCurrentLogNumber());
         tft.print(buf);
     }
 
-    // Row 2: sensor values
-    tft.setCursor(baseX, baseY + 16); // next text row
+    // Row 2: sensor values.
+    tft.setCursor(baseX, baseY + 16); // Next text row.
 
     for (int i = 0; i < count && i < SENSOR_COUNT; ++i)
     {
-        // Label
+        // Label.
         tft.setTextColor(g_channelColors[i], ILI9341_BLACK);
         tft.print("CH");
         tft.print(i + 1);
         tft.print(":");
 
-        // Value
+        // Value.
         if (!g_channelHasDevice[i] || tempsC[i] == DEVICE_DISCONNECTED_C)
         {
             tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
@@ -125,11 +125,11 @@ void drawStatusLine(const float tempsC[], int count)
         }
 
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-        tft.print("  "); // small spacer between channels
+        tft.print("  "); // Small spacer between channels.
     }
 }
 
-// Draw system status information in standby mode
+// Draw system status information in standby mode.
 void drawStandbyStatus()
 {
     const int16_t baseX = 10;
@@ -138,16 +138,16 @@ void drawStandbyStatus()
     
     tft.setTextSize(2);
     
-    // 1. Log files count
+    // 1. Log files count.
     int logCount = g_logger.getLogCount();
     tft.setCursor(baseX, baseY);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
     tft.print("Logs: ");
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     tft.print(logCount);
-    tft.print("     ");  // Clear any leftover characters
+    tft.print("     ");  // Clear any leftover characters.
     
-    // 2. Total memory
+    // 2. Total memory.
     size_t totalBytes = LittleFS.totalBytes();
     tft.setCursor(baseX, baseY + lineHeight);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
@@ -156,7 +156,7 @@ void drawStandbyStatus()
     tft.print(totalBytes / 1024);
     tft.print(" KB     ");
     
-    // 3. Free memory (in red if <10%)
+    // 3. Free memory (in red if <10%).
     size_t usedBytes = LittleFS.usedBytes();
     size_t freeBytes = totalBytes - usedBytes;
     float freePercent = (float)freeBytes / (float)totalBytes * 100.0f;
@@ -165,7 +165,7 @@ void drawStandbyStatus()
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
     tft.print("Free:  ");
     
-    // Red if less than 10%, otherwise white
+    // Red if less than 10%, otherwise white.
     if (freePercent < 10.0f) {
         tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
     } else {
@@ -176,15 +176,15 @@ void drawStandbyStatus()
     tft.print((int)freePercent);
     tft.print("%)     ");
     
-    // 4. Logging time available with current sampling frequency
-    // Average row: "timestamp,temp,temp,temp,temp\n" ≈ 35 bytes
+    // 4. Logging time available with current sampling frequency.
+    // Average row: "timestamp,temp,temp,temp,temp\n" ≈ 35 bytes.
     const size_t AVG_ROW_SIZE = 35;
-    const size_t MIN_FREE_SPACE = 100 * 1024; // Reserve 100KB
+    const size_t MIN_FREE_SPACE = 100 * 1024; // Reserve 100KB.
     
     size_t availableForLogs = (freeBytes > MIN_FREE_SPACE) ? (freeBytes - MIN_FREE_SPACE) : 0;
     unsigned long maxSamples = availableForLogs / AVG_ROW_SIZE;
     
-    // Get current sampling interval
+    // Get current sampling interval.
     int samplingSeconds = getSamplingIntervalSeconds();
     unsigned long totalSeconds = maxSamples * samplingSeconds;
     
@@ -193,7 +193,7 @@ void drawStandbyStatus()
     tft.print("Time:  ");
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     
-    // Format time appropriately
+    // Format time appropriately.
     if (totalSeconds < 60) {
         tft.print(totalSeconds);
         tft.print(" sec     ");
@@ -211,23 +211,23 @@ void drawStandbyStatus()
         tft.print(" days    ");
     }
     
-    // 5. Logger error, if any
+    // 5. Logger error, if any.
     tft.setCursor(baseX, baseY + lineHeight * 4);
     if (g_logger.hasError()) {
         tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
         tft.print("ERR: ");
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-        tft.setTextSize(1);  // Smaller text for error message
+        tft.setTextSize(1);  // Smaller text for error message.
         tft.setCursor(baseX, baseY + lineHeight * 4 + 18);
         tft.print(g_logger.getErrorMessage());
-        tft.print("                    ");  // Clear any leftover text
+        tft.print("                    ");  // Clear any leftover text.
     } else {
-        // Clear error area if no error
+        // Clear error area if no error.
         tft.fillRect(baseX, baseY + lineHeight * 4, 300, 40, ILI9341_BLACK);
     }
 }
 
-// Helper function to get sampling interval in seconds
+// Helper function to get sampling interval in seconds.
 int getSamplingIntervalSeconds()
 {
     switch (g_samplingFreq)
@@ -249,11 +249,11 @@ int getSamplingIntervalSeconds()
     }
 }
 
-// Helper function to format time duration
-// Negative values represent time in the past (e.g., -60s = "60s ago")
+// Helper function to format time duration.
+// Negative values represent time in the past (e.g., -60s = "60s ago").
 void formatTimeDuration(int seconds, char *buffer, size_t bufSize)
 {
-    // Handle negative values (time in the past)
+    // Handle negative values (time in the past).
     int absSeconds = abs(seconds);
     
     if (absSeconds == 0)
@@ -294,7 +294,7 @@ void drawGraphAxis(float minTemp, float maxTemp)
     const float range = maxTemp - minTemp;
     if (range <= 0.0f)
     {
-        return; // invalid range
+        return; // Invalid range.
     }
 
     const int16_t graphWidth = x1 - x0;
@@ -302,59 +302,59 @@ void drawGraphAxis(float minTemp, float maxTemp)
 
     uint16_t gridColor = tft.color565(48, 48, 48);
 
-    // Horizontal grid: divide temperature range into 10 intervals
+    // Horizontal grid: divide temperature range into 10 intervals.
     for (int i = 1; i <= 10; ++i)
     {
-        float frac = i / 10.0f; // 0.1 .. 0.9
+        float frac = i / 10.0f; // 0.1 .. 0.9.
         int16_t y = yBottom - (int16_t)(frac * graphHeight + 0.5f);
         tft.drawFastHLine(x0, y, x1 - x0, gridColor);
     }
 
-    // Vertical grid lines every 20 samples across full graph width
+    // Vertical grid lines every 20 samples across full graph width.
     for (int x = x0 + 20; x <= x1; x += 20)
     {
         tft.drawFastVLine(x, yTop, graphHeight, gridColor);
     }
 
-    // Draw Y axis (full range) and X axis always at the bottom
-    tft.drawFastVLine(x0, yTop, yBottom - yTop, ILI9341_WHITE); // Y axis (temp)
-    tft.drawFastHLine(x0, yBottom, x1 - x0, ILI9341_WHITE);     // X axis (time at bottom)
+    // Draw Y axis (full range) and X axis always at the bottom.
+    tft.drawFastVLine(x0, yTop, yBottom - yTop, ILI9341_WHITE); // Y axis (temp).
+    tft.drawFastHLine(x0, yBottom, x1 - x0, ILI9341_WHITE);     // X axis (time at bottom).
 
-    // Temperature labels on Y axis - display every 2 grid marks
-    // Grid divides range into 10 intervals, so label at 0, 2, 4, 6, 8, 10
+    // Temperature labels on Y axis - display every 2 grid marks.
+    // Grid divides range into 10 intervals, so label at 0, 2, 4, 6, 8, 10.
     for (int i = 0; i <= 10; i += 2)
     {
-        float frac = i / 10.0f;  // 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
+        float frac = i / 10.0f;  // 0.0, 0.2, 0.4, 0.6, 0.8, 1.0.
         float temp = minTemp + frac * range;
         int16_t y = yBottom - (int16_t)(frac * graphHeight + 0.5f);
         
-        // Draw temperature label with degree symbol
+        // Draw temperature label with degree symbol.
         tft.setCursor(4, y - 4);
         char buf[8];
         dtostrf(temp, 3, 0, buf);
         tft.print(buf);
-        tft.print(static_cast<char>(247));  // °C (0xF8 is degree symbol in Adafruit GFX)
+        tft.print(static_cast<char>(247));  // °C (0xF8 is degree symbol in Adafruit GFX).
     }
 
-    // Time marks along X axis - display every 3 grid lines (every 60 pixels)
+    // Time marks along X axis - display every 3 grid lines (every 60 pixels).
     // Grid lines are every 20 pixels, so time marks at 60, 120, 180, etc.
-    // Time goes from right (0, now) to left (negative, past)
+    // Time goes from right (0, now) to left (negative, past).
     int samplingInterval = getSamplingIntervalSeconds();
     char timeBuffer[10];
 
-    // Start from right edge and go left
+    // Start from right edge and go left.
     for (int x = x1; x >= x0; x -= 60)
     {
-        // Calculate time in seconds from the right edge (now = 0)
+        // Calculate time in seconds from the right edge (now = 0).
         int pixelsFromRight = x1 - x;
-        int totalSeconds = -pixelsFromRight * samplingInterval;  // Negative for past
+        int totalSeconds = -pixelsFromRight * samplingInterval;  // Negative for past.
 
-        // Format the time duration (negative values)
+        // Format the time duration (negative values).
         formatTimeDuration(totalSeconds, timeBuffer, sizeof(timeBuffer));
 
-        // Display the time mark below the X axis
-        // Center the text around the grid line
-        int textWidth = strlen(timeBuffer) * 6; // Approximate width (6 pixels per char at text size 1)
+        // Display the time mark below the X axis.
+        // Center the text around the grid line.
+        int textWidth = strlen(timeBuffer) * 6; // Approximate width (6 pixels per char at text size 1).
         tft.setCursor(x - textWidth / 2, yBottom + 6);
         tft.print(timeBuffer);
     }
@@ -367,11 +367,11 @@ void drawGraphAxis(float minTemp, float maxTemp)
 #endif
 }
 
-// Erase and draw segment-by-segment to minimize flicker
-// For each line segment: erase old (offset=1), draw new (offset=0)
+// Erase and draw segment-by-segment to minimize flicker.
+// For each line segment: erase old (offset=1), draw new (offset=0).
 void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t color)
 {
-    // Minimum 2 samples required for plotting
+    // Minimum 2 samples required for plotting.
     if (buffer.size() <= 1) {
         return;
     }
@@ -387,7 +387,7 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
     const float range = maxTemp - minTemp;
     if (range <= 0.0f)
     {
-        return; // invalid range
+        return; // Invalid range.
     }
 
     auto tempToY = [minTemp, maxTemp, range, yBottom, graphHeight](float t) -> int16_t
@@ -400,22 +400,22 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
         return yBottom - (int16_t)(norm * graphHeight + 0.5f);
     };
 
-    // Calculate how many samples to process (display size, not full buffer)
+    // Calculate how many samples to process (display size, not full buffer).
     int samplesToDraw = min((int)(buffer.size() - 1), GRAPH_DISPLAY_SIZE);
 
-    // Track previous point for old data (offset=1)
+    // Track previous point for old data (offset=1).
     bool havePrevOld = false;
     int16_t prevXOld = 0;
     int16_t prevYOld = 0;
 
-    // Track previous point for new data (offset=0)
+    // Track previous point for new data (offset=0).
     bool havePrevNew = false;
     int16_t prevXNew = 0;
     int16_t prevYNew = 0;
 
     for (int i = 0; i < samplesToDraw; ++i)
     {
-        // Process old data (offset=1) - erase segment
+        // Process old data (offset=1) - erase segment.
         float valOld = buffer.get(1 + i);
         if (valOld != DEVICE_DISCONNECTED_C)
         {
@@ -424,7 +424,7 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
 
             if (havePrevOld)
             {
-                // Erase old segment in black
+                // Erase old segment in black.
                 tft.drawLine(prevXOld, prevYOld, x, y, ILI9341_BLACK);
             }
 
@@ -437,7 +437,7 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
             havePrevOld = false;
         }
 
-        // Process new data (offset=0) - draw segment
+        // Process new data (offset=0) - draw segment.
         float valNew = buffer.get(0 + i);
         if (valNew != DEVICE_DISCONNECTED_C)
         {
@@ -446,7 +446,7 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
 
             if (havePrevNew)
             {
-                // Draw new segment in color
+                // Draw new segment in color.
                 tft.drawLine(prevXNew, prevYNew, x, y, color);
             }
 
@@ -461,48 +461,48 @@ void drawGraph(const RingBuffer &buffer, float minTemp, float maxTemp, uint16_t 
     }
 }
 
-// Update the graph range based on current data
-// Returns true if the graph range was updated
+// Update the graph range based on current data.
+// Returns true if the graph range was updated.
 bool updateGraphRange()
 {
-    // If we haven't seen any valid data yet, keep defaults
+    // If we haven't seen any valid data yet, keep defaults.
     if (g_dataMinTemp > g_dataMaxTemp)
     {
         return false;
     }
 
-    // Define valid span sizes with their mark intervals
-    // Each span has exactly 10 intervals with nice round marks
+    // Define valid span sizes with their mark intervals.
+    // Each span has exactly 10 intervals with nice round marks.
     struct SpanConfig {
-        float span;           // Total temperature span
-        float markInterval;   // Interval between marks
-        float alignTo;        // Align min/max to multiples of this value
+        float span;           // Total temperature span.
+        float markInterval;   // Interval between marks.
+        float alignTo;        // Align min/max to multiples of this value.
     };
     
     const SpanConfig spanConfigs[] = {
-        { 5.0f,   1.0f, 5.0f },    // 1-degree marks, align to 5s 
-        { 10.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s 
-        { 20.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s
-        { 50.0f,   5.0f, 10.0f },  // 5-degree marks, align to 10s
-        {100.0f,  10.0f, 10.0f },  // 10-degree marks, align to 10s
-        {200.0f,  20.0f, 20.0f },  // 20-degree marks, align to 20s
-        {500.0f,  50.0f, 50.0f },  // 50-degree marks, align to 50s
+        { 5.0f,   1.0f, 5.0f },    // 1-degree marks, align to 5s.
+        { 10.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s.
+        { 20.0f,   2.0f, 10.0f },  // 2-degree marks, align to 10s.
+        { 50.0f,   5.0f, 10.0f },  // 5-degree marks, align to 10s.
+        {100.0f,  10.0f, 10.0f },  // 10-degree marks, align to 10s.
+        {200.0f,  20.0f, 20.0f },  // 20-degree marks, align to 20s.
+        {500.0f,  50.0f, 50.0f },  // 50-degree marks, align to 50s.
     };
     
     const int numConfigs = sizeof(spanConfigs) / sizeof(spanConfigs[0]);
     
-    // Add padding to data range
-    const float PADDING_PERCENT = 0.05f; // 5% padding on each side
+    // Add padding to data range.
+    const float PADDING_PERCENT = 0.05f; // 5% padding on each side.
     float dataSpan = g_dataMaxTemp - g_dataMinTemp;
     float padding = dataSpan * PADDING_PERCENT;
-    if (padding < 1.0f) padding = 1.0f; // Minimum 1 degree padding
+    if (padding < 1.0f) padding = 1.0f; // Minimum 1 degree padding.
     
     float requiredMin = g_dataMinTemp - padding;
     float requiredMax = g_dataMaxTemp + padding;
     float requiredSpan = requiredMax - requiredMin;
     
-    // Find the smallest span that can contain the data
-    // Try each span configuration, attempting to fit the data with alignment
+    // Find the smallest span that can contain the data.
+    // Try each span configuration, attempting to fit the data with alignment.
     const SpanConfig* selectedConfig = nullptr;
     float newMin = 0.0f;
     float newMax = 0.0f;
@@ -510,44 +510,44 @@ bool updateGraphRange()
     for (int configIndex = 0; configIndex < numConfigs; ++configIndex) {
         const SpanConfig* testConfig = &spanConfigs[configIndex];
         
-        // Skip configs that are too small for the required span
+        // Skip configs that are too small for the required span.
         if (testConfig->span < requiredSpan) {
             continue;
         }
         
-        // Calculate the center of the required range
+        // Calculate the center of the required range.
         float center = (requiredMin + requiredMax) / 2.0f;
         
-        // Calculate initial min/max centered around the data
+        // Calculate initial min/max centered around the data.
         float testMin = center - testConfig->span / 2.0f;
         float testMax = center + testConfig->span / 2.0f;
         
-        // Align min to nice round number (round down to multiple of alignTo)
+        // Align min to nice round number (round down to multiple of alignTo).
         testMin = floorf(testMin / testConfig->alignTo) * testConfig->alignTo;
         
-        // Set max to exactly min + span (ensures exactly 10 intervals)
+        // Set max to exactly min + span (ensures exactly 10 intervals).
         testMax = testMin + testConfig->span;
         
-        // Adjust range to ensure it contains the required data
-        // Try shifting by alignTo increments
-        int maxShiftAttempts = 20; // Prevent infinite loop
+        // Adjust range to ensure it contains the required data.
+        // Try shifting by alignTo increments.
+        int maxShiftAttempts = 20; // Prevent infinite loop.
         int shiftCount = 0;
         bool dataFits = false;
         
         while (shiftCount < maxShiftAttempts) {
-            // Check if data fits in current range
+            // Check if data fits in current range.
             if (requiredMin >= testMin && requiredMax <= testMax) {
                 dataFits = true;
                 break;
             }
             
-            // Determine which direction to shift
+            // Determine which direction to shift.
             if (requiredMin < testMin) {
-                // Data extends below range - shift down
+                // Data extends below range - shift down.
                 testMin -= testConfig->alignTo;
                 testMax -= testConfig->alignTo;
             } else if (requiredMax > testMax) {
-                // Data extends above range - shift up
+                // Data extends above range - shift up.
                 testMin += testConfig->alignTo;
                 testMax += testConfig->alignTo;
             }
@@ -555,7 +555,7 @@ bool updateGraphRange()
             shiftCount++;
         }
         
-        // If data fits with this config, use it
+        // If data fits with this config, use it.
         if (dataFits) {
             selectedConfig = testConfig;
             newMin = testMin;
@@ -563,10 +563,10 @@ bool updateGraphRange()
             break;
         }
         
-        // Otherwise, try next larger span
+        // Otherwise, try next larger span.
     }
     
-    // If no config worked (shouldn't happen), use the largest one
+    // If no config worked (shouldn't happen), use the largest one.
     if (selectedConfig == nullptr) {
         selectedConfig = &spanConfigs[numConfigs - 1];
         float center = (requiredMin + requiredMax) / 2.0f;
@@ -576,7 +576,7 @@ bool updateGraphRange()
         newMax = newMin + selectedConfig->span;
     }
     
-    // Clamp to DS18B20 physical limits
+    // Clamp to DS18B20 physical limits.
     // Disabled for now - clamping messes up ranges and axis marks and makes readjustment too complex.
     // if (newMin < DS18B20_MIN_TEMP)
     //     newMin = DS18B20_MIN_TEMP;
@@ -603,11 +603,11 @@ void clearScreen()
 
 void clearGraphArea()
 {
-    // Clear the graph area
+    // Clear the graph area.
     tft.fillRect(GRAPH_LEFT_MARGIN, GRAPH_TOP_MARGIN, tft.width() - GRAPH_RIGHT_MARGIN - GRAPH_LEFT_MARGIN + 1, tft.height() - GRAPH_BOTTOM_MARGIN - GRAPH_TOP_MARGIN + 1, ILI9341_BLACK);
 }
 
-// Redraw the entire graph for currently selected channel
+// Redraw the entire graph for currently selected channel.
 void redrawGraph()
 {
 #ifdef ENABLE_DISPLAY_PROFILING
@@ -619,7 +619,7 @@ void redrawGraph()
 
     if (g_displayedChannel == CHANNEL_ALL)
     {
-        // Draw all channels (reverse order to have CH1 on top)
+        // Draw all channels (reverse order to have CH1 on top).
         for (int i = SENSOR_COUNT - 1; i >= 0; --i)
         {
             drawGraph(g_sensorValues[i], g_graphMinTemp, g_graphMaxTemp, g_channelColors[i]);
@@ -627,7 +627,7 @@ void redrawGraph()
     }
     else
     {
-        // Draw selected channel only
+        // Draw selected channel only.
         int channelIndex = static_cast<int>(g_displayedChannel);
         drawGraph(g_sensorValues[channelIndex], g_graphMinTemp, g_graphMaxTemp, g_channelColors[channelIndex]);
     }

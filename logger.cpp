@@ -1,9 +1,9 @@
 #include "logger.h"
 
-// Reserve space for log operations (e.g., 100KB)
+// Reserve space for log operations (e.g., 100KB).
 const size_t MIN_FREE_SPACE = 100 * 1024;
 
-// Maximum single log file size (e.g., 1MB)
+// Maximum single log file size (e.g., 1MB).
 const size_t MAX_LOG_SIZE = 1 * 1024 * 1024;
 
 TemperatureLogger::TemperatureLogger()
@@ -22,29 +22,29 @@ bool TemperatureLogger::startRecording(SamplingFrequency samplingFreq)
         stopRecording();
     }
     
-    // Clear any previous errors
+    // Clear any previous errors.
     clearError();
     
-    // Find next log number
+    // Find next log number.
     m_currentLogNumber = findNextLogNumber();
     
-    // Generate filename
+    // Generate filename.
     String filename = getLogFilename(m_currentLogNumber);
     
-    // Ensure we have enough space
+    // Ensure we have enough space.
     if (!ensureSpace(MIN_FREE_SPACE)) {
         setError("Insufficient space");
         return false;
     }
     
-    // Open file for writing
+    // Open file for writing.
     m_currentLogFile = LittleFS.open(filename, "w");
     if (!m_currentLogFile) {
         setError("Failed to create log");
         return false;
     }
     
-    // Write header
+    // Write header.
     m_currentLogFile.print("#Temperature log ");
     char buf[16];
     snprintf(buf, sizeof(buf), "log_%04d", m_currentLogNumber);
@@ -90,7 +90,7 @@ bool TemperatureLogger::logTemperature(unsigned long timestampMs, const float te
         return false;
     }
     
-    // Check if log file is getting too large
+    // Check if log file is getting too large.
     size_t currentSize = m_currentLogFile.size();
     if (currentSize > MAX_LOG_SIZE) {
         setError("Log file too large");
@@ -98,23 +98,23 @@ bool TemperatureLogger::logTemperature(unsigned long timestampMs, const float te
         return false;
     }
     
-    // Write timestamp (ms, since log has been started)
+    // Write timestamp (ms, since log has been started).
     m_currentLogFile.print(timestampMs - m_recordingStartTime);
     
-    // Write temperature values for all channels
+    // Write temperature values for all channels.
     for (int i = 0; i < SENSOR_COUNT; ++i) {
         m_currentLogFile.print(",");
         
-        // Only write value if sensor reading is valid
+        // Only write value if sensor reading is valid.
         if (tempsC[i] >= DS18B20_MIN_TEMP && tempsC[i] <= DS18B20_MAX_TEMP) {
-            m_currentLogFile.print(tempsC[i], 2); // 2 decimal places
+            m_currentLogFile.print(tempsC[i], 2); // 2 decimal places.
         }
-        // else leave empty (just the comma)
+        // Else leave empty (just the comma).
     }
     
     m_currentLogFile.println();
     
-    // Flush periodically to ensure data is written
+    // Flush periodically to ensure data is written.
     m_samplesWritten++;
     if (m_samplesWritten % 10 == 0) {
         m_currentLogFile.flush();
@@ -136,10 +136,10 @@ int TemperatureLogger::findNextLogNumber()
     while (file) {
         String filename = file.name();
         
-        // Check if filename matches pattern "log_XXXX.csv"
+        // Check if filename matches pattern "log_XXXX.csv".
         if (filename.startsWith("log_") && filename.endsWith(".csv")) {
-            // Extract number
-            int startIdx = 4; // After "log_"
+            // Extract number.
+            int startIdx = 4; // After "log_".
             int endIdx = filename.indexOf(".csv");
             if (endIdx > startIdx) {
                 String numberStr = filename.substring(startIdx, endIdx);
@@ -169,18 +169,18 @@ bool TemperatureLogger::ensureSpace(size_t requiredBytes)
     size_t usedSpace = LittleFS.usedBytes();
     size_t freeSpace = totalSpace - usedSpace;
     
-    // If we have enough free space, we're good
+    // If we have enough free space, we're good.
     if (freeSpace >= requiredBytes) {
         return true;
     }
     
-    // Try deleting old logs until we have enough space
+    // Try deleting old logs until we have enough space.
     Serial.println("Insufficient space, deleting old logs...");
     
     while (freeSpace < requiredBytes) {
         int oldestLog = findOldestLog();
         if (oldestLog == -1) {
-            // No more logs to delete
+            // No more logs to delete.
             Serial.println("Cannot free enough space");
             return false;
         }
@@ -190,7 +190,7 @@ bool TemperatureLogger::ensureSpace(size_t requiredBytes)
             return false;
         }
         
-        // Recalculate free space
+        // Recalculate free space.
         usedSpace = LittleFS.usedBytes();
         freeSpace = totalSpace - usedSpace;
         
@@ -226,10 +226,10 @@ int TemperatureLogger::findOldestLog()
     while (file) {
         String filename = file.name();
         
-        // Check if filename matches pattern "log_XXXX.csv"
+        // Check if filename matches pattern "log_XXXX.csv".
         if (filename.startsWith("log_") && filename.endsWith(".csv")) {
-            // Extract number
-            int startIdx = 4; // After "log_"
+            // Extract number.
+            int startIdx = 4; // After "log_".
             int endIdx = filename.indexOf(".csv");
             if (endIdx > startIdx) {
                 String numberStr = filename.substring(startIdx, endIdx);
@@ -270,7 +270,7 @@ int TemperatureLogger::getLogFileList(String* fileList, int maxCount)
     while (file && count < maxCount) {
         String filename = file.name();
         
-        // Check if filename matches pattern "log_XXXX.csv"
+        // Check if filename matches pattern "log_XXXX.csv".
         if (filename.startsWith("log_") && filename.endsWith(".csv")) {
             fileList[count] = filename;
             count++;
@@ -295,7 +295,7 @@ int TemperatureLogger::getLogCount()
     while (file) {
         String filename = file.name();
         
-        // Check if filename matches pattern "log_XXXX.csv"
+        // Check if filename matches pattern "log_XXXX.csv".
         if (filename.startsWith("log_") && filename.endsWith(".csv")) {
             count++;
         }

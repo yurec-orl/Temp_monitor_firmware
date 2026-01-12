@@ -20,7 +20,7 @@ SensorReader g_sensorReader;
 
 void setup()
 {
-  // Basic serial for debug
+  // Basic serial for debug.
   Serial.begin(115200);
   delay(1000);
   Serial.println();
@@ -40,16 +40,16 @@ void setup()
   Serial.print("LittleFS used bytes: ");
   Serial.println(used);
 
-  // Initialize hardware
+  // Initialize hardware.
   initHardware();
 
-  // Initialize buttons
+  // Initialize buttons.
   initButtons();
 
-  // Initial presence scan
+  // Initial presence scan.
   g_sensorReader.forcePresenceCheck();
 
-  // Pre-fill test data for debugging range shrinking behavior
+  // Pre-fill test data for debugging range shrinking behavior.
 #ifdef ENABLE_TEST_DATA_PREFILL
   prefillTestData();
 #endif
@@ -59,26 +59,24 @@ void setup()
 
 void loop()
 {
-  unsigned long now = millis();
-
-  // Read button states (must be called frequently for debouncing)
+  // Read button states (must be called frequently for debouncing).
   readButtons();
 
-  // Update hot-plug detection (sensor presence checking)
-  // Automatically skipped during temperature conversion to avoid bus interference
+  // Update hot-plug detection (sensor presence checking).
+  // Automatically skipped during temperature conversion to avoid bus interference.
   g_sensorReader.updatePresenceDetection(PRESENCE_REFRESH_INTERVAL_MS);
 
-  // Update sensor reading state machine
-  // This must be called frequently to advance the state machine
-  // Override sampling interval for standby and wifi modes for faster response
+  // Update sensor reading state machine.
+  // This must be called frequently to advance the state machine.
+  // Override sampling interval for standby and wifi modes for faster response.
   bool newDataReady = g_sensorReader.update(g_mode == MODE_RECORD?getSamplingIntervalMs():SAMPLING_INTERVAL_OVERRIDE_MS);
   
   if (newDataReady) {
-    // New temperature data is ready
+    // New temperature data is ready.
     float tempsC[SENSOR_COUNT];
     
     if (g_sensorReader.getReadings(tempsC, SENSOR_COUNT)) {
-      // Mode-specific handling
+      // Mode-specific handling.
       switch (g_mode)
       {
       case MODE_STANDBY:
@@ -94,7 +92,7 @@ void loop()
         break;
       }
 
-      // Serial debug
+      // Serial debug.
       Serial.print("[");
       Serial.print(millis());
       Serial.print("] ");
@@ -117,7 +115,7 @@ void loop()
     }
   }
   
-  // WiFi mode needs frequent handleClient() calls regardless of sensor timing
+  // WiFi mode needs frequent handleClient() calls regardless of sensor timing.
   if (g_mode == MODE_WIFI) {
     g_wifiManager.handleClient();
   }

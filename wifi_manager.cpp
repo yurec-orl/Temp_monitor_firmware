@@ -5,10 +5,6 @@
 #include <vector>
 #include <algorithm>
 
-// Default AP credentials
-const char* DEFAULT_AP_SSID = "ESP32";
-const char* DEFAULT_AP_PASSWORD = "ESP32Temp";
-
 WiFiManager::WiFiManager()
     : m_server(nullptr)
     , m_isActive(false)
