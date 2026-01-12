@@ -46,7 +46,9 @@ bool TemperatureLogger::startRecording(SamplingFrequency samplingFreq)
     
     // Write header
     m_currentLogFile.print("#Temperature log ");
-    m_currentLogFile.println(m_currentLogNumber);
+    char buf[16];
+    snprintf(buf, sizeof(buf), "log_%04d", m_currentLogNumber);
+    m_currentLogFile.println(buf);
     m_currentLogFile.println("#device=ESP32_TEMPERATURE_LOGGER");
     m_currentLogFile.print("#sampling=");
     m_currentLogFile.println(getSamplingFreqDescription(samplingFreq));
@@ -96,8 +98,8 @@ bool TemperatureLogger::logTemperature(unsigned long timestampMs, const float te
         return false;
     }
     
-    // Write timestamp
-    m_currentLogFile.print(timestampMs);
+    // Write timestamp (ms, since log has been started)
+    m_currentLogFile.print(timestampMs - m_recordingStartTime);
     
     // Write temperature values for all channels
     for (int i = 0; i < SENSOR_COUNT; ++i) {
