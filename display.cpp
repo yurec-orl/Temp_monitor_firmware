@@ -127,6 +127,14 @@ void drawStatusLine(const float tempsC[], int count)
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
         tft.print("  "); // Small spacer between channels.
     }
+    
+    // Draw battery icon in top right corner.
+    // Icon is same height as one text line (8 pixels at text size 1).
+    const int16_t iconWidth = 20;
+    const int16_t iconHeight = 8;
+    const int16_t iconX = tft.width() - iconWidth - 4;
+    const int16_t iconY = baseY;
+    drawBatteryIcon(iconX, iconY, iconWidth, iconHeight);
 }
 
 // Draw system status information in standby mode.
@@ -211,19 +219,81 @@ void drawStandbyStatus()
         tft.print(" days    ");
     }
     
-    // 5. Logger error, if any.
+    // 5. Battery voltage and state for calibration.
     tft.setCursor(baseX, baseY + lineHeight * 4);
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Batt:  ");
+    
+    float battVoltage = g_batteryMonitor.getVoltage();
+    BatteryState battState = g_batteryMonitor.getState();
+    int battPercent = g_batteryMonitor.getPercentage();
+    
+    // Color-code based on state.
+    uint16_t voltageColor;
+    switch (battState) {
+        case BATTERY_CHARGING:
+            voltageColor = ILI9341_CYAN;
+            break;
+        case BATTERY_FULL:
+            voltageColor = ILI9341_GREEN;
+            break;
+        case BATTERY_GOOD:
+            voltageColor = ILI9341_WHITE;
+            break;
+        case BATTERY_LOW:
+            voltageColor = ILI9341_ORANGE;
+            break;
+        case BATTERY_EMPTY:
+            voltageColor = ILI9341_RED;
+            break;
+        default:
+            voltageColor = ILI9341_WHITE;
+            break;
+    }
+    
+    tft.setTextColor(voltageColor, ILI9341_BLACK);
+    tft.print(battVoltage, 3);  // 3 decimal places.
+    tft.print("V ");
+    
+    // Show state name.
+    tft.setTextSize(1);
+    tft.print("(");
+    switch (battState) {
+        case BATTERY_CHARGING:
+            tft.print("CHARGING");
+            break;
+        case BATTERY_FULL:
+            tft.print("FULL");
+            break;
+        case BATTERY_GOOD:
+            tft.print("GOOD");
+            break;
+        case BATTERY_LOW:
+            tft.print("LOW");
+            break;
+        case BATTERY_EMPTY:
+            tft.print("EMPTY");
+            break;
+    }
+    tft.print(" ");
+    tft.print(battPercent);
+    tft.print("%)        ");  // Clear leftover text.
+    
+    // 6. Logger error, if any.
+    tft.setCursor(baseX, baseY + lineHeight * 5);
+    tft.setTextSize(2);
     if (g_logger.hasError()) {
         tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
         tft.print("ERR: ");
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
         tft.setTextSize(1);  // Smaller text for error message.
-        tft.setCursor(baseX, baseY + lineHeight * 4 + 18);
+        tft.setCursor(baseX, baseY + lineHeight * 5 + 18);
         tft.print(g_logger.getErrorMessage());
         tft.print("                    ");  // Clear any leftover text.
     } else {
         // Clear error area if no error.
-        tft.fillRect(baseX, baseY + lineHeight * 4, 300, 40, ILI9341_BLACK);
+        tft.fillRect(baseX, baseY + lineHeight * 5, 300, 40, ILI9341_BLACK);
     }
 }
 
@@ -651,4 +721,85 @@ void refreshUI()
     }
 
     drawStatusLine(tempsC, SENSOR_COUNT);
+}
+
+// Draw battery indicator icon.
+void drawBatteryIcon(int16_t x, int16_t y, int16_t width, int16_t height)
+{
+    // Get current battery state.
+    BatteryState state = g_batteryMonitor.getState();
+    int percentage = g_batteryMonitor.getPercentage();
+    
+    // Battery outline dimensions.
+    const int16_t bodyWidth = width - 2;
+    const int16_t bodyHeight = height;
+    const int16_t capWidth = 2;
+    const int16_t capHeight = height / 2;
+    
+    // Choose color based on state.
+    uint16_t iconColor;
+    uint16_t fillColor;
+    bool showLightning = false;
+    
+    switch (state) {
+        case BATTERY_CHARGING:
+            iconColor = ILI9341_CYAN;
+            fillColor = ILI9341_CYAN;
+            showLightning = true;
+            break;
+            
+        case BATTERY_FULL:
+            iconColor = ILI9341_GREEN;
+            fillColor = ILI9341_GREEN;
+            break;
+            
+        case BATTERY_GOOD:
+            iconColor = ILI9341_WHITE;
+            fillColor = ILI9341_GREEN;
+            break;
+            
+        case BATTERY_LOW:
+            iconColor = ILI9341_ORANGE;
+            fillColor = ILI9341_ORANGE;
+            break;
+            
+        case BATTERY_EMPTY:
+            iconColor = ILI9341_RED;
+            fillColor = ILI9341_RED;
+            break;
+            
+        default:
+            iconColor = ILI9341_WHITE;
+            fillColor = ILI9341_WHITE;
+            break;
+    }
+    
+    // Clear area.
+    tft.fillRect(x, y, width, height, ILI9341_BLACK);
+    
+    // Draw battery body outline.
+    tft.drawRect(x, y, bodyWidth, bodyHeight, iconColor);
+    
+    // Draw battery cap (positive terminal).
+    tft.fillRect(x + bodyWidth, y + (bodyHeight - capHeight) / 2, capWidth, capHeight, iconColor);
+    
+    // Draw fill level based on percentage (leave 1px border).
+    if (percentage > 0) {
+        int16_t fillWidth = ((bodyWidth - 4) * percentage) / 100;
+        if (fillWidth > 0) {
+            tft.fillRect(x + 2, y + 2, fillWidth, bodyHeight - 4, fillColor);
+        }
+    }
+    
+    // Draw lightning bolt if charging.
+    if (showLightning) {
+        // Simple lightning bolt pattern in center of battery.
+        int16_t boltX = x + bodyWidth / 2 - 1;
+        int16_t boltY = y + 2;
+        
+        // Draw a simple zigzag pattern.
+        tft.drawLine(boltX + 1, boltY, boltX, boltY + 2, ILI9341_YELLOW);
+        tft.drawLine(boltX, boltY + 2, boltX + 2, boltY + 2, ILI9341_YELLOW);
+        tft.drawLine(boltX + 2, boltY + 2, boltX + 1, boltY + 4, ILI9341_YELLOW);
+    }
 }

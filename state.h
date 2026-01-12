@@ -5,6 +5,7 @@
 #include "ring_buffer.h"
 #include "logger.h"
 #include "wifi_manager.h"
+#include "battery_monitor.h"
 
 // --- Global state variables --------------------------------------------------
 
@@ -28,6 +29,9 @@ extern TemperatureLogger g_logger;
 
 // WiFi manager instance
 extern WiFiManager g_wifiManager;
+
+// Battery monitor instance.
+extern BatteryMonitor g_batteryMonitor;
 
 // Dynamic scaling state
 extern float g_dataMinTemp;

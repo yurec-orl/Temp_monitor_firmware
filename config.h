@@ -59,8 +59,22 @@ constexpr float DS18B20_MAX_TEMP = 125.0f;
 // Timing intervals.
 constexpr unsigned long SAMPLING_INTERVAL_OVERRIDE_MS = 1000;
 constexpr unsigned long PRESENCE_REFRESH_INTERVAL_MS = 2000;
+constexpr unsigned long BATTERY_UPDATE_INTERVAL_MS = 5000;  // Battery voltage check every 5 seconds.
 
 constexpr unsigned long TEMP_REQUEST_DELAY = 750;   // Required by DS18B20 to process requests.
+
+// Battery monitoring.
+constexpr int PIN_BATTERY_VOLTAGE = 10;  // ADC pin for battery voltage measurement.
+constexpr float BATTERY_R1 = 220000.0f;  // Voltage divider R1 (220k ohm).
+constexpr float BATTERY_R2 = 100000.0f;  // Voltage divider R2 (100k ohm).
+constexpr int BATTERY_AVG_SAMPLES = 15;  // Number of samples for running average.
+
+// 18650 battery voltage levels (at divider output).
+constexpr float BATTERY_VOLTAGE_FULL = 3.9f;    // Consider full above this.
+constexpr float BATTERY_VOLTAGE_MID = 3.7f;     // Mid discharge.
+constexpr float BATTERY_VOLTAGE_LOW = 3.5f;     // Low battery warning.
+constexpr float BATTERY_VOLTAGE_EMPTY = 3.3f;   // Empty/shutdown threshold.
+constexpr float BATTERY_CHARGING_THRESHOLD = 4.1f;  // Voltage above this = charging.
 
 // --- Hardware pins -----------------------------------------------------------
 
@@ -84,5 +98,15 @@ static const int PIN_BUTTON_1 = 1;
 static const int PIN_BUTTON_2 = 2;
 static const int PIN_BUTTON_3 = 8;
 static const int PIN_BUTTON_4 = 9;
+
+// --- Battery state -----------------------------------------------------------
+
+enum BatteryState {
+  BATTERY_CHARGING = 0,
+  BATTERY_FULL,
+  BATTERY_GOOD,      // Partially discharged.
+  BATTERY_LOW,       // Heavily discharged.
+  BATTERY_EMPTY
+};
 
 #endif // CONFIG_H

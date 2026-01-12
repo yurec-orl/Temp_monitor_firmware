@@ -17,6 +17,9 @@ TemperatureLogger g_logger;
 // Manages WiFi AP and web server
 WiFiManager g_wifiManager;
 
+// Battery monitor instance.
+BatteryMonitor g_batteryMonitor;
+
 float g_dataMinTemp = 9999.0f;
 float g_dataMaxTemp = -9999.0f;
 

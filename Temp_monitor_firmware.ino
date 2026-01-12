@@ -43,6 +43,9 @@ void setup()
   // Initialize hardware.
   initHardware();
 
+  // Initialize battery monitor.
+  g_batteryMonitor.begin();
+
   // Initialize buttons.
   initButtons();
 
@@ -119,4 +122,7 @@ void loop()
   if (g_mode == MODE_WIFI) {
     g_wifiManager.handleClient();
   }
+  
+  // Update battery monitor.
+  g_batteryMonitor.update();
 }

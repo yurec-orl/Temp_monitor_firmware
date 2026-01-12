@@ -39,4 +39,7 @@ int getSamplingIntervalSeconds();
 // Helper function to format time duration
 void formatTimeDuration(int seconds, char* buffer, size_t bufSize);
 
+// Draw battery indicator icon.
+void drawBatteryIcon(int16_t x, int16_t y, int16_t width, int16_t height);
+
 #endif // DISPLAY_H
