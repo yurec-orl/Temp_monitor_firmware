@@ -84,6 +84,12 @@ void onButton4Pressed()
     // Enter WiFi mode
     g_mode = MODE_WIFI;
     clearScreen();
+    
+    // Force an immediate sensor reading so WiFi display shows current temps
+    // Without this, with slow sampling (e.g., 1 hour), screen would be blank
+    g_sensorReader.requestImmediateReading();
+    
+    Serial.println("Entering WiFi mode");
 }
 
 // --- Button initialization ---------------------------------------------------

@@ -70,7 +70,10 @@ void loop()
 
   // Update sensor reading state machine
   // This must be called frequently to advance the state machine
-  if (g_sensorReader.update(getSamplingIntervalMs())) {
+  // Override sampling interval for standby and wifi modes for faster response
+  bool newDataReady = g_sensorReader.update(g_mode == MODE_RECORD?getSamplingIntervalMs():SAMPLING_INTERVAL_OVERRIDE_MS);
+  
+  if (newDataReady) {
     // New temperature data is ready
     float tempsC[SENSOR_COUNT];
     
@@ -112,5 +115,10 @@ void loop()
       }
       Serial.println();
     }
+  }
+  
+  // WiFi mode needs frequent handleClient() calls regardless of sensor timing
+  if (g_mode == MODE_WIFI) {
+    g_wifiManager.handleClient();
   }
 }

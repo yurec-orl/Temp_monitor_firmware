@@ -57,6 +57,7 @@ constexpr float DS18B20_MIN_TEMP = -55.0f;
 constexpr float DS18B20_MAX_TEMP = 125.0f;
 
 // Timing intervals
+constexpr unsigned long SAMPLING_INTERVAL_OVERRIDE_MS = 1000;
 constexpr unsigned long PRESENCE_REFRESH_INTERVAL_MS = 2000;
 
 constexpr unsigned long TEMP_REQUEST_DELAY = 750;   // Required by DS18B20 to process requests

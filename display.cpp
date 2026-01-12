@@ -129,6 +129,104 @@ void drawStatusLine(const float tempsC[], int count)
     }
 }
 
+// Draw system status information in standby mode
+void drawStandbyStatus()
+{
+    const int16_t baseX = 10;
+    const int16_t baseY = 60;
+    const int16_t lineHeight = 20;
+    
+    tft.setTextSize(2);
+    
+    // 1. Log files count
+    int logCount = g_logger.getLogCount();
+    tft.setCursor(baseX, baseY);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Logs: ");
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    tft.print(logCount);
+    tft.print("     ");  // Clear any leftover characters
+    
+    // 2. Total memory
+    size_t totalBytes = LittleFS.totalBytes();
+    tft.setCursor(baseX, baseY + lineHeight);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Total: ");
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    tft.print(totalBytes / 1024);
+    tft.print(" KB     ");
+    
+    // 3. Free memory (in red if <10%)
+    size_t usedBytes = LittleFS.usedBytes();
+    size_t freeBytes = totalBytes - usedBytes;
+    float freePercent = (float)freeBytes / (float)totalBytes * 100.0f;
+    
+    tft.setCursor(baseX, baseY + lineHeight * 2);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Free:  ");
+    
+    // Red if less than 10%, otherwise white
+    if (freePercent < 10.0f) {
+        tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
+    } else {
+        tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    }
+    tft.print(freeBytes / 1024);
+    tft.print(" KB (");
+    tft.print((int)freePercent);
+    tft.print("%)     ");
+    
+    // 4. Logging time available with current sampling frequency
+    // Average row: "timestamp,temp,temp,temp,temp\n" ≈ 35 bytes
+    const size_t AVG_ROW_SIZE = 35;
+    const size_t MIN_FREE_SPACE = 100 * 1024; // Reserve 100KB
+    
+    size_t availableForLogs = (freeBytes > MIN_FREE_SPACE) ? (freeBytes - MIN_FREE_SPACE) : 0;
+    unsigned long maxSamples = availableForLogs / AVG_ROW_SIZE;
+    
+    // Get current sampling interval
+    int samplingSeconds = getSamplingIntervalSeconds();
+    unsigned long totalSeconds = maxSamples * samplingSeconds;
+    
+    tft.setCursor(baseX, baseY + lineHeight * 3);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Time:  ");
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    
+    // Format time appropriately
+    if (totalSeconds < 60) {
+        tft.print(totalSeconds);
+        tft.print(" sec     ");
+    } else if (totalSeconds < 3600) {
+        unsigned long minutes = totalSeconds / 60;
+        tft.print(minutes);
+        tft.print(" min     ");
+    } else if (totalSeconds < 86400) {
+        unsigned long hours = totalSeconds / 3600;
+        tft.print(hours);
+        tft.print(" hrs     ");
+    } else {
+        unsigned long days = totalSeconds / 86400;
+        tft.print(days);
+        tft.print(" days    ");
+    }
+    
+    // 5. Logger error, if any
+    tft.setCursor(baseX, baseY + lineHeight * 4);
+    if (g_logger.hasError()) {
+        tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
+        tft.print("ERR: ");
+        tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+        tft.setTextSize(1);  // Smaller text for error message
+        tft.setCursor(baseX, baseY + lineHeight * 4 + 18);
+        tft.print(g_logger.getErrorMessage());
+        tft.print("                    ");  // Clear any leftover text
+    } else {
+        // Clear error area if no error
+        tft.fillRect(baseX, baseY + lineHeight * 4, 300, 40, ILI9341_BLACK);
+    }
+}
+
 // Helper function to get sampling interval in seconds
 int getSamplingIntervalSeconds()
 {

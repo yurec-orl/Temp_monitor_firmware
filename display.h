@@ -8,6 +8,9 @@ class RingBuffer;
 // Draw 2-line status (mode/channel + sensor values)
 void drawStatusLine(const float tempsC[], int count);
 
+// Draw system status information in standby mode
+void drawStandbyStatus();
+
 // Draw temperature/time graph axis
 void drawGraphAxis(float minTemp, float maxTemp);
 

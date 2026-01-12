@@ -8,8 +8,9 @@
 
 void handleStandbyMode(const float tempsC[])
 {
-    // Standby: just show status line, no graph yet
+    // Standby: show status line and system status
     drawStatusLine(tempsC, SENSOR_COUNT);
+    drawStandbyStatus();
 }
 
 void handleRecordMode(const float tempsC[])
@@ -122,49 +123,46 @@ void handleWifiMode(const float tempsC[])
 {
     // WiFi mode: Start AP and web server
     
-    // Start WiFi AP if not already started
+    // Start WiFi AP if not already started (safe to call multiple times)
     if (!g_wifiManager.isActive()) {
+        Serial.println("Starting WiFi AP from handleWifiMode...");
         g_wifiManager.startAP("ESP32_TempLogger", "temperature");
-        
-        // Clear screen and show WiFi info
-        clearScreen();
     }
-    
-    // Handle web server requests
-    g_wifiManager.handleClient();
     
     // Display WiFi status
     drawStatusLine(tempsC, SENSOR_COUNT);
     
-    // Show WiFi info on screen
+    // Show WiFi info on screen (static display, safe to redraw)
     tft.setTextSize(2);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
     
     tft.setCursor(10, 50);
-    tft.print("WiFi AP Active");
+    tft.print("WiFi AP Active     ");  // Extra spaces to clear old text
     
     tft.setTextSize(1);
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     
     tft.setCursor(10, 80);
-    tft.print("SSID: ESP32_TempLogger");
+    tft.print("SSID: ESP32_TempLogger     ");
     
     tft.setCursor(10, 95);
-    tft.print("Password: temperature");
+    tft.print("Password: temperature      ");
     
     tft.setCursor(10, 110);
     tft.print("IP: ");
     tft.print(g_wifiManager.getIPAddress());
+    tft.print("          ");  // Clear any leftover text
     
     tft.setCursor(10, 130);
     tft.print("Clients: ");
     tft.print(g_wifiManager.getClientCount());
+    tft.print("     ");  // Clear any leftover text
     
     tft.setCursor(10, 150);
     tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-    tft.print("Access logs at:");
+    tft.print("Access logs at:              ");
     tft.setCursor(10, 165);
     tft.print("http://");
     tft.print(g_wifiManager.getIPAddress());
-    tft.print("/logs");
+    tft.print("/logs          ");
 }
