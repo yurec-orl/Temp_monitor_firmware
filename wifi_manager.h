@@ -36,6 +36,7 @@ private:
     void handleListLogs();
     void handleDownloadLog();
     void handleDeleteLog();
+    void handleDeleteAllLogs();
     void handleNotFound();
     
     // Helper to generate HTML page

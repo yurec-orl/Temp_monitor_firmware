@@ -2,6 +2,8 @@
 #include "esp_wifi.h"
 #include "state.h"
 #include <LittleFS.h>
+#include <vector>
+#include <algorithm>
 
 // Default AP credentials
 const char* DEFAULT_AP_SSID = "ESP32";
@@ -76,6 +78,7 @@ bool WiFiManager::startAP(const char* ssid, const char* password)
     m_server->on("/logs", [this]() { this->handleListLogs(); });
     m_server->on("/download", [this]() { this->handleDownloadLog(); });
     m_server->on("/delete", [this]() { this->handleDeleteLog(); });
+    m_server->on("/deleteall", [this]() { this->handleDeleteAllLogs(); });
     m_server->onNotFound([this]() { this->handleNotFound(); });
     
     // Start server
@@ -144,14 +147,21 @@ void WiFiManager::handleListLogs()
 {
     String content = "<h1>Temperature Logs</h1>";
     content += "<p><a href='/'>Back to Home</a></p>";
+    
     content += "<table border='1' cellpadding='5' cellspacing='0'>";
     content += "<tr><th>Filename</th><th>Size (bytes)</th><th>Actions</th></tr>";
     
-    // List all log files
+    // Collect all log files with their info using std::vector
+    struct LogFileInfo {
+        String filename;
+        size_t fileSize;
+    };
+    
+    std::vector<LogFileInfo> logFiles;
+    
     File root = LittleFS.open("/");
     if (root) {
         File file = root.openNextFile();
-        bool foundLogs = false;
         
         while (file) {
             String filename = String(file.name());
@@ -166,17 +176,10 @@ void WiFiManager::handleListLogs()
             
             // Check if it's a log file (match both /log_ and log_ patterns)
             if ((filename.startsWith("/log_") || filename.startsWith("log_")) && filename.endsWith(".csv")) {
-                foundLogs = true;
-                size_t fileSize = file.size();
-                
-                content += "<tr>";
-                content += "<td>" + filename + "</td>";
-                content += "<td>" + String(fileSize) + "</td>";
-                content += "<td>";
-                content += "<a href='/download?file=" + filename + "'>Download</a> | ";
-                content += "<a href='/delete?file=" + filename + "' onclick='return confirm(\"Delete this log?\")'>Delete</a>";
-                content += "</td>";
-                content += "</tr>";
+                LogFileInfo info;
+                info.filename = filename;
+                info.fileSize = file.size();
+                logFiles.push_back(info);
             }
             
             file.close();
@@ -184,7 +187,24 @@ void WiFiManager::handleListLogs()
         }
         root.close();
         
-        if (!foundLogs) {
+        if (logFiles.size() > 0) {
+            // Sort in reverse order (newest/highest number first) using std::sort
+            std::sort(logFiles.begin(), logFiles.end(), [](const LogFileInfo& a, const LogFileInfo& b) {
+                return a.filename > b.filename;  // Descending order
+            });
+            
+            // Display sorted logs
+            for (const auto& logInfo : logFiles) {
+                content += "<tr>";
+                content += "<td>" + logInfo.filename + "</td>";
+                content += "<td>" + String(logInfo.fileSize) + "</td>";
+                content += "<td>";
+                content += "<a href='/download?file=" + logInfo.filename + "'>Download</a> | ";
+                content += "<a href='/delete?file=" + logInfo.filename + "' onclick='return confirm(\"Delete this log?\")'>Delete</a>";
+                content += "</td>";
+                content += "</tr>";
+            }
+        } else {
             content += "<tr><td colspan='3'>No log files found</td></tr>";
         }
     } else {
@@ -193,9 +213,13 @@ void WiFiManager::handleListLogs()
     
     content += "</table>";
     
+    // Add "Delete All" button at the bottom if there are logs
+    if (logFiles.size() > 0) {
+        content += "<p style='margin-top: 20px;'><a href='/deleteall' onclick='return confirm(\"Delete ALL " + String(logFiles.size()) + " log files? This cannot be undone!\")' style='color: red; font-weight: bold;'>Delete All Logs</a></p>";
+    }
+    
     m_server->send(200, "text/html", generateHTML(content));
 }
-
 void WiFiManager::handleDownloadLog()
 {
     if (!m_server->hasArg("file")) {
@@ -231,6 +255,15 @@ void WiFiManager::handleDownloadLog()
         m_server->send(500, "text/plain", "Failed to open file");
         return;
     }
+    
+    // Extract just the filename (without path) for the download
+    String displayName = filename;
+    if (displayName.startsWith("/")) {
+        displayName = displayName.substring(1);
+    }
+    
+    // Set Content-Disposition header to specify filename
+    m_server->sendHeader("Content-Disposition", "attachment; filename=\"" + displayName + "\"");
     
     // Stream file to client
     m_server->streamFile(file, "text/csv");
@@ -280,6 +313,80 @@ void WiFiManager::handleDeleteLog()
     } else {
         m_server->send(500, "text/plain", "Failed to delete file");
     }
+}
+
+void WiFiManager::handleDeleteAllLogs()
+{
+    int deletedCount = 0;
+    int failedCount = 0;
+    
+    File root = LittleFS.open("/");
+    if (!root) {
+        m_server->send(500, "text/plain", "Failed to open filesystem");
+        return;
+    }
+    
+    // Collect all log filenames using std::vector
+    std::vector<String> logFiles;
+    
+    File file = root.openNextFile();
+    while (file) {
+        String filename = String(file.name());
+        
+        // Ensure filename starts with / for consistency
+        if (!filename.startsWith("/")) {
+            filename = "/" + filename;
+        }
+        
+        // Check if it's a log file
+        if ((filename.startsWith("/log_") || filename.startsWith("log_")) && filename.endsWith(".csv")) {
+            logFiles.push_back(filename);
+        }
+        
+        file.close();
+        file = root.openNextFile();
+    }
+    root.close();
+    
+    // Delete all collected log files
+    for (const auto& filename : logFiles) {
+        // Try with leading slash first
+        if (LittleFS.exists(filename)) {
+            if (LittleFS.remove(filename)) {
+                deletedCount++;
+                Serial.print("Deleted: ");
+                Serial.println(filename);
+            } else {
+                failedCount++;
+            }
+        } else {
+            // Try without leading slash
+            String altFilename = filename.substring(1);
+            if (LittleFS.exists(altFilename)) {
+                if (LittleFS.remove(altFilename)) {
+                    deletedCount++;
+                    Serial.print("Deleted: ");
+                    Serial.println(altFilename);
+                } else {
+                    failedCount++;
+                }
+            }
+        }
+    }
+    
+    Serial.print("Deleted ");
+    Serial.print(deletedCount);
+    Serial.println(" log files");
+    
+    if (failedCount > 0) {
+        Serial.print("Failed to delete ");
+        Serial.print(failedCount);
+        Serial.println(" files");
+    }
+    
+    // Redirect back to logs page
+    m_server->sendHeader("Location", "/logs");
+    m_server->send(303);
 }
 
 void WiFiManager::handleNotFound()
