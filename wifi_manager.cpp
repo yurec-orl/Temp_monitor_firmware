@@ -154,10 +154,18 @@ void WiFiManager::handleListLogs()
         bool foundLogs = false;
         
         while (file) {
-            String filename = file.name();
+            String filename = String(file.name());
             
-            // Check if it's a log file
-            if (filename.startsWith("/log_") && filename.endsWith(".csv")) {
+            // Ensure filename starts with / for consistency
+            if (!filename.startsWith("/")) {
+                filename = "/" + filename;
+            }
+            
+            Serial.print("Found file: ");
+            Serial.println(filename);
+            
+            // Check if it's a log file (match both /log_ and log_ patterns)
+            if ((filename.startsWith("/log_") || filename.startsWith("log_")) && filename.endsWith(".csv")) {
                 foundLogs = true;
                 size_t fileSize = file.size();
                 
@@ -171,8 +179,10 @@ void WiFiManager::handleListLogs()
                 content += "</tr>";
             }
             
+            file.close();
             file = root.openNextFile();
         }
+        root.close();
         
         if (!foundLogs) {
             content += "<tr><td colspan='3'>No log files found</td></tr>";
@@ -195,15 +205,25 @@ void WiFiManager::handleDownloadLog()
     
     String filename = m_server->arg("file");
     
-    // Security check - ensure filename starts with /log_ and ends with .csv
-    if (!filename.startsWith("/log_") || !filename.endsWith(".csv")) {
+    // Ensure filename has leading slash
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+    
+    // Security check - ensure filename contains log_ and ends with .csv
+    if ((!filename.startsWith("/log_") && filename.indexOf("log_") == -1) || !filename.endsWith(".csv")) {
         m_server->send(403, "text/plain", "Invalid file");
         return;
     }
     
     if (!LittleFS.exists(filename)) {
-        m_server->send(404, "text/plain", "File not found");
-        return;
+        // Try without leading slash
+        String altFilename = filename.substring(1);
+        if (!LittleFS.exists(altFilename)) {
+            m_server->send(404, "text/plain", "File not found");
+            return;
+        }
+        filename = altFilename;
     }
     
     File file = LittleFS.open(filename, "r");
@@ -229,15 +249,25 @@ void WiFiManager::handleDeleteLog()
     
     String filename = m_server->arg("file");
     
+    // Ensure filename has leading slash
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+    
     // Security check
-    if (!filename.startsWith("/log_") || !filename.endsWith(".csv")) {
+    if ((!filename.startsWith("/log_") && filename.indexOf("log_") == -1) || !filename.endsWith(".csv")) {
         m_server->send(403, "text/plain", "Invalid file");
         return;
     }
     
     if (!LittleFS.exists(filename)) {
-        m_server->send(404, "text/plain", "File not found");
-        return;
+        // Try without leading slash
+        String altFilename = filename.substring(1);
+        if (!LittleFS.exists(altFilename)) {
+            m_server->send(404, "text/plain", "File not found");
+            return;
+        }
+        filename = altFilename;
     }
     
     if (LittleFS.remove(filename)) {
