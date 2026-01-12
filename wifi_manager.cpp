@@ -1,0 +1,283 @@
+#include "wifi_manager.h"
+#include "esp_wifi.h"
+#include "state.h"
+#include <LittleFS.h>
+
+// Default AP credentials
+const char* DEFAULT_AP_SSID = "ESP32";
+const char* DEFAULT_AP_PASSWORD = "ESP32Temp";
+
+WiFiManager::WiFiManager()
+    : m_server(nullptr)
+    , m_isActive(false)
+{
+}
+
+bool WiFiManager::startAP(const char* ssid, const char* password)
+{
+    if (m_isActive) {
+        Serial.println("WiFi AP already active");
+        return true;
+    }
+    
+    Serial.println("Starting WiFi Access Point...");
+    
+    // STEP 1: Complete WiFi shutdown (critical for ESP32-S3)
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    delay(500);  // Give time to fully shut down
+    
+    // STEP 2: Set mode to AP
+    WiFi.mode(WIFI_AP);
+    delay(200);  // Wait for mode to be established
+    
+    // STEP 3: Set country code to US (AFTER mode is set - important!)
+    wifi_country_t country;
+    country.cc[0] = 'U';
+    country.cc[1] = 'S';
+    country.cc[2] = '\0';
+    country.schan = 1;
+    country.nchan = 11;
+    country.max_tx_power = 20;
+    country.policy = WIFI_COUNTRY_POLICY_MANUAL;
+    esp_wifi_set_country(&country);
+    
+    // STEP 4: Set transmit power
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    
+    // STEP 5: Start AP with explicit parameters
+    Serial.print("Starting AP: ");
+    Serial.println(ssid);
+    
+    // Channel 6, not hidden (false), max 4 connections
+    bool success = WiFi.softAP(ssid, password, 6, false, 4);
+    
+    if (!success) {
+        Serial.println("✗ Failed to start AP");
+        return false;
+    }
+    
+    delay(500);  // Give AP time to fully initialize
+    
+    // Get and display the IP address
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("✓ AP Started! IP address: ");
+    Serial.println(IP);
+    Serial.print("SSID: ");
+    Serial.println(ssid);
+    Serial.print("MAC: ");
+    Serial.println(WiFi.softAPmacAddress());
+    
+    // Create web server on port 80
+    m_server = new WebServer(80);
+    
+    // Set up routes
+    m_server->on("/", [this]() { this->handleRoot(); });
+    m_server->on("/logs", [this]() { this->handleListLogs(); });
+    m_server->on("/download", [this]() { this->handleDownloadLog(); });
+    m_server->on("/delete", [this]() { this->handleDeleteLog(); });
+    m_server->onNotFound([this]() { this->handleNotFound(); });
+    
+    // Start server
+    m_server->begin();
+    Serial.println("Web server started on port 80");
+    
+    m_isActive = true;
+    return true;
+}
+
+void WiFiManager::stop()
+{
+    if (!m_isActive) {
+        return;
+    }
+    
+    Serial.println("Stopping WiFi AP...");
+    
+    if (m_server) {
+        m_server->stop();
+        delete m_server;
+        m_server = nullptr;
+    }
+    
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_OFF);
+    
+    m_isActive = false;
+    Serial.println("WiFi AP stopped");
+}
+
+void WiFiManager::handleClient()
+{
+    if (m_isActive && m_server) {
+        m_server->handleClient();
+    }
+}
+
+String WiFiManager::getIPAddress() const
+{
+    if (m_isActive) {
+        return WiFi.softAPIP().toString();
+    }
+    return "N/A";
+}
+
+int WiFiManager::getClientCount() const
+{
+    if (m_isActive) {
+        return WiFi.softAPgetStationNum();
+    }
+    return 0;
+}
+
+void WiFiManager::handleRoot()
+{
+    String content = "<h1>ESP32 Temperature Logger</h1>";
+    content += "<p>Access Point Mode</p>";
+    content += "<p><a href='/logs'>View/Download Logs</a></p>";
+    content += "<p>Connected clients: " + String(getClientCount()) + "</p>";
+    
+    m_server->send(200, "text/html", generateHTML(content));
+}
+
+void WiFiManager::handleListLogs()
+{
+    String content = "<h1>Temperature Logs</h1>";
+    content += "<p><a href='/'>Back to Home</a></p>";
+    content += "<table border='1' cellpadding='5' cellspacing='0'>";
+    content += "<tr><th>Filename</th><th>Size (bytes)</th><th>Actions</th></tr>";
+    
+    // List all log files
+    File root = LittleFS.open("/");
+    if (root) {
+        File file = root.openNextFile();
+        bool foundLogs = false;
+        
+        while (file) {
+            String filename = file.name();
+            
+            // Check if it's a log file
+            if (filename.startsWith("/log_") && filename.endsWith(".csv")) {
+                foundLogs = true;
+                size_t fileSize = file.size();
+                
+                content += "<tr>";
+                content += "<td>" + filename + "</td>";
+                content += "<td>" + String(fileSize) + "</td>";
+                content += "<td>";
+                content += "<a href='/download?file=" + filename + "'>Download</a> | ";
+                content += "<a href='/delete?file=" + filename + "' onclick='return confirm(\"Delete this log?\")'>Delete</a>";
+                content += "</td>";
+                content += "</tr>";
+            }
+            
+            file = root.openNextFile();
+        }
+        
+        if (!foundLogs) {
+            content += "<tr><td colspan='3'>No log files found</td></tr>";
+        }
+    } else {
+        content += "<tr><td colspan='3'>Error reading filesystem</td></tr>";
+    }
+    
+    content += "</table>";
+    
+    m_server->send(200, "text/html", generateHTML(content));
+}
+
+void WiFiManager::handleDownloadLog()
+{
+    if (!m_server->hasArg("file")) {
+        m_server->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+    
+    String filename = m_server->arg("file");
+    
+    // Security check - ensure filename starts with /log_ and ends with .csv
+    if (!filename.startsWith("/log_") || !filename.endsWith(".csv")) {
+        m_server->send(403, "text/plain", "Invalid file");
+        return;
+    }
+    
+    if (!LittleFS.exists(filename)) {
+        m_server->send(404, "text/plain", "File not found");
+        return;
+    }
+    
+    File file = LittleFS.open(filename, "r");
+    if (!file) {
+        m_server->send(500, "text/plain", "Failed to open file");
+        return;
+    }
+    
+    // Stream file to client
+    m_server->streamFile(file, "text/csv");
+    file.close();
+    
+    Serial.print("Downloaded: ");
+    Serial.println(filename);
+}
+
+void WiFiManager::handleDeleteLog()
+{
+    if (!m_server->hasArg("file")) {
+        m_server->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+    
+    String filename = m_server->arg("file");
+    
+    // Security check
+    if (!filename.startsWith("/log_") || !filename.endsWith(".csv")) {
+        m_server->send(403, "text/plain", "Invalid file");
+        return;
+    }
+    
+    if (!LittleFS.exists(filename)) {
+        m_server->send(404, "text/plain", "File not found");
+        return;
+    }
+    
+    if (LittleFS.remove(filename)) {
+        Serial.print("Deleted: ");
+        Serial.println(filename);
+        
+        // Redirect back to logs page
+        m_server->sendHeader("Location", "/logs");
+        m_server->send(303);
+    } else {
+        m_server->send(500, "text/plain", "Failed to delete file");
+    }
+}
+
+void WiFiManager::handleNotFound()
+{
+    String content = "<h1>404 - Not Found</h1>";
+    content += "<p>The requested page was not found.</p>";
+    content += "<p><a href='/'>Go to Home</a></p>";
+    
+    m_server->send(404, "text/html", generateHTML(content));
+}
+
+String WiFiManager::generateHTML(const String& content)
+{
+    String html = "<!DOCTYPE html><html><head>";
+    html += "<meta charset='UTF-8'>";
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+    html += "<title>ESP32 Temperature Logger</title>";
+    html += "<style>";
+    html += "body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }";
+    html += "h1 { color: #333; }";
+    html += "a { color: #0066cc; text-decoration: none; }";
+    html += "a:hover { text-decoration: underline; }";
+    html += "table { background: white; margin-top: 20px; }";
+    html += "th { background: #0066cc; color: white; }";
+    html += "</style>";
+    html += "</head><body>";
+    html += content;
+    html += "</body></html>";
+    
+    return html;
+}

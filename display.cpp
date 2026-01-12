@@ -89,6 +89,15 @@ void drawStatusLine(const float tempsC[], int count)
         break;
     }
 
+    if (g_mode == MODE_RECORD)
+    {
+        tft.print("  LOG: ");
+        // Log number, 4 digits, zero padding
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%04d", g_logger.getCurrentLogNumber());
+        tft.print(buf);
+    }
+
     // Row 2: sensor values
     tft.setCursor(baseX, baseY + 16); // next text row
 

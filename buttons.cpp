@@ -24,11 +24,24 @@ void onButton1Pressed()
 void onButton2Pressed()
 {
     Serial.println("Button 2 pressed - Mode selection");
+    
+    // Stop WiFi if currently in WiFi mode
+    if (g_mode == MODE_WIFI && g_wifiManager.isActive()) {
+        g_wifiManager.stop();
+    }
+    
+    // Stop logging if currently recording
+    if (g_mode == MODE_RECORD && g_logger.isRecording()) {
+        g_logger.stopRecording();
+    }
+    
     // Cycle through MODE_STANDBY, MODE_RECORD (WiFi excluded)
     g_mode = nextMode(g_mode);
+    
     // Clear all recorded data and screen
     clearRecordedData();
     clearScreen();
+    
     // Force immediate sensor reading
     g_sensorReader.requestImmediateReading();
 }
@@ -52,8 +65,25 @@ void onButton3Pressed()
 // Button 4 callback - Wifi mode
 void onButton4Pressed()
 {
-    Serial.println("Button 4 pressed - Wifi mode");
-    // TODO: Implement Wifi access point functionality
+    Serial.println("Button 4 pressed - WiFi mode");
+    
+    // If currently in WiFi mode, exit it
+    if (g_mode == MODE_WIFI) {
+        Serial.println("Exiting WiFi mode");
+        g_wifiManager.stop();
+        g_mode = MODE_STANDBY;
+        clearScreen();
+        return;
+    }
+    
+    // Stop logging if currently recording
+    if (g_mode == MODE_RECORD && g_logger.isRecording()) {
+        g_logger.stopRecording();
+    }
+    
+    // Enter WiFi mode
+    g_mode = MODE_WIFI;
+    clearScreen();
 }
 
 // --- Button initialization ---------------------------------------------------

@@ -3,13 +3,19 @@
 
 // --- Global state variables --------------------------------------------------
 
-OperatingMode g_mode = MODE_RECORD;
+OperatingMode g_mode = MODE_STANDBY;
 SamplingFrequency g_samplingFreq = SAMPLING_FREQ_1S;
 DisplayChannel g_displayedChannel = CHANNEL_ALL;
 
 bool g_channelHasDevice[SENSOR_COUNT] = { false, false, false, false };
 
 RingBuffer g_sensorValues[SENSOR_COUNT];
+
+// Logs temperature readings to flash memory
+TemperatureLogger g_logger;
+
+// Manages WiFi AP and web server
+WiFiManager g_wifiManager;
 
 float g_dataMinTemp = 9999.0f;
 float g_dataMaxTemp = -9999.0f;
@@ -102,6 +108,8 @@ void recalculateMinMax() {
 // Pre-fill buffers with test data for debugging
 // 200 samples: 125°C down to 25°C at -0.5°C per sample
 // Remaining samples: 25°C flat
+
+#ifdef ENABLE_TEST_DATA_PREFILL
 void prefillTestData() {
   Serial.println("Pre-filling buffers with test data...");
   
@@ -139,3 +147,4 @@ void prefillTestData() {
   Serial.print("Buffer size: ");
   Serial.println(g_sensorValues[0].size());
 }
+#endif

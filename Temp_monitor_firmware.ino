@@ -50,7 +50,9 @@ void setup()
   g_sensorReader.forcePresenceCheck();
 
   // Pre-fill test data for debugging range shrinking behavior
-  //prefillTestData();
+#ifdef ENABLE_TEST_DATA_PREFILL
+  prefillTestData();
+#endif
 
   Serial.println("Initialization complete.");
 }

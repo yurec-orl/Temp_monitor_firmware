@@ -3,6 +3,8 @@
 
 #include "config.h"
 #include "ring_buffer.h"
+#include "logger.h"
+#include "wifi_manager.h"
 
 // --- Global state variables --------------------------------------------------
 
@@ -20,6 +22,12 @@ extern bool g_channelHasDevice[SENSOR_COUNT];
 
 // Sensor values buffer for graph plotting
 extern RingBuffer g_sensorValues[SENSOR_COUNT];
+
+// Temperature logger instance
+extern TemperatureLogger g_logger;
+
+// WiFi manager instance
+extern WiFiManager g_wifiManager;
 
 // Dynamic scaling state
 extern float g_dataMinTemp;

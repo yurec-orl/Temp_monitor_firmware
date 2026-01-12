@@ -15,6 +15,14 @@ void handleStandbyMode(const float tempsC[])
 void handleRecordMode(const float tempsC[])
 {
     // Record mode: status + graph
+    
+    // Start logging if not already started
+    if (!g_logger.isRecording()) {
+        g_logger.startRecording(g_samplingFreq);
+    }
+    
+    // Log the temperature reading
+    g_logger.logTemperature(millis(), tempsC);
 
     // Store old range to detect changes
     float oldGraphMin = g_graphMinTemp;
@@ -112,6 +120,51 @@ void handleRecordMode(const float tempsC[])
 
 void handleWifiMode(const float tempsC[])
 {
-    // WiFi mode: for now reuse standby display
+    // WiFi mode: Start AP and web server
+    
+    // Start WiFi AP if not already started
+    if (!g_wifiManager.isActive()) {
+        g_wifiManager.startAP("ESP32_TempLogger", "temperature");
+        
+        // Clear screen and show WiFi info
+        clearScreen();
+    }
+    
+    // Handle web server requests
+    g_wifiManager.handleClient();
+    
+    // Display WiFi status
     drawStatusLine(tempsC, SENSOR_COUNT);
+    
+    // Show WiFi info on screen
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    
+    tft.setCursor(10, 50);
+    tft.print("WiFi AP Active");
+    
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    
+    tft.setCursor(10, 80);
+    tft.print("SSID: ESP32_TempLogger");
+    
+    tft.setCursor(10, 95);
+    tft.print("Password: temperature");
+    
+    tft.setCursor(10, 110);
+    tft.print("IP: ");
+    tft.print(g_wifiManager.getIPAddress());
+    
+    tft.setCursor(10, 130);
+    tft.print("Clients: ");
+    tft.print(g_wifiManager.getClientCount());
+    
+    tft.setCursor(10, 150);
+    tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+    tft.print("Access logs at:");
+    tft.setCursor(10, 165);
+    tft.print("http://");
+    tft.print(g_wifiManager.getIPAddress());
+    tft.print("/logs");
 }
