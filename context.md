@@ -150,3 +150,44 @@ Sensor task: reads DS18B20 every N ms based on required resolution (or triggered
 UI task: refreshes at some FPS (e.g., 5–10 Hz) for smooth graph.
 Logging task: wakes up at sampling interval to write CSV rows.
 Button task: scans/debounces at 50–100 Hz or uses GPIO interrupts plus queue.
+
+---
+
+## TODO / Future Improvements
+
+### 1. Block log deletion while download is in progress
+**Priority:** High  
+**Description:** Prevent file deletion via web interface if the file is currently being downloaded by a client. This prevents corruption and interrupted transfers.  
+**Implementation:**
+- Track active file downloads in WiFiManager (e.g., `std::set<String> activeDownloads`)
+- Lock file during `handleDownloadLog()` streaming
+- Check lock status in `handleDeleteLog()` and `handleDeleteAllLogs()`
+- Return HTTP 409 Conflict if deletion attempted during download
+- Consider timeout mechanism to clear stale locks
+
+### 2. Add recording time and remaining time display in record mode
+**Priority:** Medium  
+**Description:** Show elapsed recording time and estimated time remaining based on available flash space.  
+**Implementation:**
+- Track recording start timestamp (`g_recordingStartTime`)
+- Calculate elapsed time: `millis() - g_recordingStartTime`
+- Estimate remaining time: `availableSpace / (bytesPerSample * samplesPerSecond)`
+- Display on status line or as additional info line:
+  - Format: "Recording: 01:23:45 | Remaining: ~12h 34m"
+  - Update every minute to avoid excessive redraws
+- Consider log file size limits (1MB per file) in calculations
+
+### 3. Improve battery charging state detection
+**Priority:** Medium  
+**Description:** Current charging detection (voltage ≥4.1V) may have false positives. Improve accuracy to distinguish between "charging" and "just charged" states.  
+**Implementation:**
+- Monitor voltage trend over time (rising = charging, stable = charged)
+- Add optional CHRG pin monitoring from TP4056:
+  - CHRG pin goes LOW during charging, HIGH when complete
+  - Requires additional GPIO connection to TP4056 CHRG output
+- Implement state machine with hysteresis:
+  - CHARGING: voltage rising or CHRG pin LOW
+  - FULL: voltage stable at 4.0-4.2V and CHRG pin HIGH
+  - DISCHARGING: voltage falling
+- Consider measuring current draw (if shunt resistor added)
+- Update battery icon to show distinct "plugged in but full" state
