@@ -191,6 +191,32 @@ The system distinguishes between "charging" and "fully charged":
 
 This provides clear feedback when the battery is actively charging vs. when it's full and can be disconnected.
 
+### Battery Performance Characteristics (Measured)
+
+#### Discharge Behavior (Standby Mode)
+- **Linear discharge phase**: 4.0V → 3.6V over 14.8 hours
+- **Rapid drop phase**: 3.6V → 2.83V (shutdown) in ~0.8 hours
+- **Total runtime**: ~15.6 hours from full charge to shutdown
+- **Discharge curve**: Typical Li-ion behavior with plateau followed by cliff
+- **Shutdown voltage**: 2.83V (ESP32 brown-out or voltage regulator cutoff)
+
+**Interpretation:**
+- Usable capacity range: 4.0V to 3.6V (94% of runtime)
+- Below 3.6V: Remaining capacity <5%, voltage drops rapidly
+- Low battery warning (3.5V) provides ~1 hour notice before shutdown
+- Average current draw in standby: ~115 mA (calculated from discharge time)
+
+#### Charging Behavior (TP4056)
+- **CC (Constant Current) phase**: 3.5 hours until voltage reached 4.33V
+- **CV (Constant Voltage) phase**: Duration unknown (charge controller pin not yet connected)
+- **Peak voltage during charging**: 4.33V (typical for Li-ion CC/CV charging)
+- **Full charge detection**: Cannot be determined without CHRG pin monitoring
+
+**Note:** 
+- Total charge time likely 4-5 hours (typical CC+CV for 1800 mAh cell)
+- Connecting TP4056 CHRG pin to ESP32 GPIO would enable accurate charge completion detection
+- Current 4.1V threshold may detect "charging" but not distinguish "charged and done"
+
 ---
 
 ## 7. USB & Power Lessons Learned
