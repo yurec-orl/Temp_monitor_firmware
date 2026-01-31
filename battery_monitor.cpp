@@ -4,6 +4,7 @@ BatteryMonitor::BatteryMonitor()
   : m_voltage(0.0f)
   , m_state(BATTERY_GOOD)
   , m_lastUpdate(0)
+  , m_isChargingPin(false)
   , m_bufferIndex(0)
   , m_bufferCount(0)
 {
@@ -18,6 +19,10 @@ void BatteryMonitor::begin()
   // Configure ADC pin for battery voltage measurement.
   pinMode(PIN_BATTERY_VOLTAGE, INPUT);
   
+  // Configure CHRG status pin with internal pull-up.
+  // TP4056 CHRG pin is open-drain: LOW = charging, HIGH-Z = not charging.
+  pinMode(PIN_CHARGE_STATUS, INPUT_PULLUP);
+  
   // ESP32-S3 ADC configuration for better accuracy.
   analogSetAttenuation(ADC_11db);  // 0-3.3V range.
   analogReadResolution(12);         // 12-bit resolution (0-4095).
@@ -28,11 +33,16 @@ void BatteryMonitor::begin()
     delay(10);  // Small delay between readings.
   }
   
+  // Read initial CHRG pin status.
+  m_isChargingPin = (digitalRead(PIN_CHARGE_STATUS) == LOW);
+  
   updateState();
   
   Serial.print("Battery monitor initialized. Voltage: ");
   Serial.print(m_voltage);
-  Serial.print("V, State: ");
+  Serial.print("V, CHRG pin: ");
+  Serial.print(m_isChargingPin ? "LOW (charging)" : "HIGH (not charging)");
+  Serial.print(", State: ");
   Serial.println(m_state);
 }
 
@@ -46,15 +56,22 @@ void BatteryMonitor::update()
     
     BatteryState oldState = m_state;
     float oldVoltage = m_voltage;
+    bool oldChargingPin = m_isChargingPin;
     
     readVoltage();
+    
+    // Read CHRG pin status (LOW = charging, HIGH = not charging).
+    m_isChargingPin = (digitalRead(PIN_CHARGE_STATUS) == LOW);
+    
     updateState();
     
-    // Debug output when voltage or state changes significantly.
-    if (abs(m_voltage - oldVoltage) > 0.05f || m_state != oldState) {
+    // Debug output when voltage, CHRG pin, or state changes significantly.
+    if (abs(m_voltage - oldVoltage) > 0.05f || m_state != oldState || m_isChargingPin != oldChargingPin) {
       Serial.print("[BATTERY] Voltage: ");
       Serial.print(m_voltage, 3);
-      Serial.print("V, State: ");
+      Serial.print("V, CHRG pin: ");
+      Serial.print(m_isChargingPin ? "LOW (charging)" : "HIGH");
+      Serial.print(", State: ");
       switch (m_state) {
         case BATTERY_CHARGING: Serial.print("CHARGING"); break;
         case BATTERY_FULL: Serial.print("FULL"); break;
@@ -105,15 +122,20 @@ void BatteryMonitor::readVoltage()
 
 void BatteryMonitor::updateState()
 {
-  // Determine battery state based on voltage.
-  // Hysteresis: Use slightly different thresholds when charging vs discharging.
+  // Determine battery state based on CHRG pin and voltage.
+  // CHRG pin provides definitive charging status.
   
-  if (m_voltage >= BATTERY_CHARGING_THRESHOLD) {
-    // High voltage indicates charging in progress.
+  // CHRG pin LOW = actively charging (TP4056 pulls it LOW).
+  if (m_isChargingPin) {
     m_state = BATTERY_CHARGING;
+    return;
   }
-  else if (m_voltage >= BATTERY_VOLTAGE_FULL) {
-    // Fully charged (not currently charging).
+  
+  // CHRG pin HIGH (high-Z) = not charging.
+  // Determine state based on voltage.
+  
+  if (m_voltage >= BATTERY_VOLTAGE_FULL) {
+    // Fully charged (CHRG pin went HIGH after charging complete).
     m_state = BATTERY_FULL;
   }
   else if (m_voltage >= BATTERY_VOLTAGE_MID) {
@@ -164,4 +186,10 @@ int BatteryMonitor::getPercentage() const
   if (percentage > 100.0f) percentage = 100.0f;
   
   return (int)percentage;
+}
+
+bool BatteryMonitor::isFullyCharged() const
+{
+  // Fully charged = CHRG pin HIGH (not charging) AND voltage >= 4.1V.
+  return !m_isChargingPin && (m_voltage >= BATTERY_CHARGING_THRESHOLD);
 }

@@ -23,8 +23,11 @@ public:
   // Get battery percentage (0-100%).
   int getPercentage() const;
   
-  // Check if battery is charging.
-  bool isCharging() const { return m_state == BATTERY_CHARGING; }
+  // Check if battery is charging (based on CHRG pin).
+  bool isCharging() const { return m_isChargingPin; }
+  
+  // Check if battery is fully charged (CHRG pin HIGH + voltage >= 4.1V).
+  bool isFullyCharged() const;
 
 private:
   // Read ADC and update running average.
@@ -39,6 +42,7 @@ private:
   float m_voltage;              // Current battery voltage.
   BatteryState m_state;         // Current battery state.
   unsigned long m_lastUpdate;   // Last update timestamp.
+  bool m_isChargingPin;         // CHRG pin status (LOW = charging).
   
   // Running average buffer.
   float m_voltageBuffer[BATTERY_AVG_SAMPLES];

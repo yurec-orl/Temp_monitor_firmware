@@ -148,23 +148,24 @@ This avoids flicker while keeping implementation simple.
 - **Calibration Factor**: 1.056× (accounts for resistor tolerances and ADC non-linearity)
 
 ### Battery States
-The system detects 5 distinct battery states based on voltage:
+The system detects 5 distinct battery states based on voltage and measured discharge behavior:
 
-| State | Voltage Range | Display Color | Icon |
-|-------|--------------|---------------|------|
-| **CHARGING** | ≥4.1V | Cyan | Battery + Lightning Bolt |
-| **FULL** | 3.9-4.1V | Green | Full Battery |
-| **GOOD** | 3.7-3.9V | White | Partial Battery |
-| **LOW** | 3.5-3.7V | Orange | Low Battery |
-| **EMPTY** | ≤3.5V | Red | Empty Battery |
+| State | Voltage Range | Display Color | Icon | Typical Remaining Runtime |
+|-------|--------------|---------------|------|---------------------------|
+| **CHARGING** | ≥4.1V | Cyan | Battery + Lightning Bolt | N/A |
+| **FULL** | 4.0-4.1V | Green | Full Battery | ~14.8 hours |
+| **GOOD** | 3.7-4.0V | White | Partial Battery | ~7-14 hours |
+| **LOW** | 3.6-3.7V | Orange | Low Battery | ~1-2 hours |
+| **EMPTY** | ≤3.6V | Red | Empty Battery | <1 hour |
 
-### Voltage Thresholds (18650 Li-ion)
+### Voltage Thresholds (18650 Li-ion) - Based on Measured Discharge Curve
 - **4.2V**: Maximum safe charge voltage
 - **4.1V**: Charging detection threshold
-- **3.9V**: Full battery (post-charge rest voltage)
-- **3.7V**: Nominal voltage (~40% capacity)
-- **3.5V**: Low battery warning (~10% capacity)
-- **3.3V**: Empty/cutoff threshold (protect from over-discharge)
+- **4.0V**: Full battery (start of linear discharge phase)
+- **3.7V**: Mid-range (~50% of usable capacity)
+- **3.6V**: Low battery warning (end of linear discharge, ~1 hour remaining)
+- **3.3V**: Empty/cutoff threshold
+- **2.83V**: Actual shutdown voltage (brown-out or regulator cutoff)
 
 ### User Interface
 1. **Status Bar Icon** (all modes):
@@ -202,10 +203,11 @@ This provides clear feedback when the battery is actively charging vs. when it's
 - **Shutdown voltage**: 2.83V (ESP32 brown-out or voltage regulator cutoff)
 
 **Interpretation:**
-- Usable capacity range: 4.0V to 3.6V (94% of runtime)
-- Below 3.6V: Remaining capacity <5%, voltage drops rapidly
-- Low battery warning (3.5V) provides ~1 hour notice before shutdown
+- Usable capacity range: 4.0V to 3.6V (94% of runtime, linear discharge)
+- Below 3.6V: Remaining capacity <6%, voltage drops rapidly to shutdown
+- Low battery warning (3.6V) provides ~1 hour notice before critical shutdown
 - Average current draw in standby: ~115 mA (calculated from discharge time)
+- Battery state transitions aligned with measured discharge curve for accurate runtime estimation
 
 #### Charging Behavior (TP4056)
 - **CC (Constant Current) phase**: 3.5 hours until voltage reached 4.33V

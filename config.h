@@ -66,14 +66,15 @@ constexpr unsigned long TEMP_REQUEST_DELAY = 750;   // Required by DS18B20 to pr
 
 // Battery monitoring.
 constexpr int PIN_BATTERY_VOLTAGE = 10;  // ADC pin for battery voltage measurement.
+constexpr int PIN_CHARGE_STATUS = 18;    // TP4056 CHRG pin (active LOW when charging).
 constexpr float BATTERY_R1 = 220000.0f;  // Voltage divider R1 (220k ohm).
 constexpr float BATTERY_R2 = 100000.0f;  // Voltage divider R2 (100k ohm).
 constexpr int BATTERY_AVG_SAMPLES = 15;  // Number of samples for running average.
 
 // 18650 battery voltage levels (at divider output).
-constexpr float BATTERY_VOLTAGE_FULL = 3.9f;    // Consider full above this.
-constexpr float BATTERY_VOLTAGE_MID = 3.7f;     // Mid discharge.
-constexpr float BATTERY_VOLTAGE_LOW = 3.5f;     // Low battery warning.
+constexpr float BATTERY_VOLTAGE_FULL = 4.0f;    // Consider full above this (start of linear discharge).
+constexpr float BATTERY_VOLTAGE_MID = 3.7f;     // Mid discharge (50% of usable capacity).
+constexpr float BATTERY_VOLTAGE_LOW = 3.6f;     // Low battery warning (end of linear phase, ~1 hour remaining).
 constexpr float BATTERY_VOLTAGE_EMPTY = 3.3f;   // Empty/shutdown threshold.
 constexpr float BATTERY_CHARGING_THRESHOLD = 4.1f;  // Voltage above this = charging.
 
