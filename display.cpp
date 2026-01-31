@@ -30,8 +30,11 @@ void drawStatusLine(const float tempsC[], int count)
     case MODE_RECORD:
         tft.print("  REC");
         break;
-    case MODE_WIFI:
-        tft.print(" WIFI");
+    // case MODE_WIFI:  // Disabled - replaced with USB Serial
+    //     tft.print(" WIFI");
+    //     break;
+    case MODE_USB_SERIAL:
+        tft.print("  USB");
         break;
     default:
         tft.print("    ?");

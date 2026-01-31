@@ -8,7 +8,8 @@
 enum OperatingMode {
   MODE_STANDBY = 0,
   MODE_RECORD,
-  MODE_WIFI
+  // MODE_WIFI  // Disabled - replaced with USB Serial mode
+  MODE_USB_SERIAL
 };
 
 enum SamplingFrequency {

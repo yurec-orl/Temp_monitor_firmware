@@ -25,9 +25,14 @@ void onButton2Pressed()
 {
     Serial.println("Button 2 pressed - Mode selection");
     
-    // Stop WiFi if currently in WiFi mode.
-    if (g_mode == MODE_WIFI && g_wifiManager.isActive()) {
-        g_wifiManager.stop();
+    // Stop WiFi if currently in WiFi mode (disabled).
+    // if (g_mode == MODE_WIFI && g_wifiManager.isActive()) {
+    //     g_wifiManager.stop();
+    // }
+    
+    // Stop USB Serial if currently active.
+    if (g_mode == MODE_USB_SERIAL && g_usbSerialManager.isActive()) {
+        g_usbSerialManager.stop();
     }
     
     // Stop logging if currently recording.
@@ -35,7 +40,7 @@ void onButton2Pressed()
         g_logger.stopRecording();
     }
     
-    // Cycle through MODE_STANDBY, MODE_RECORD (WiFi excluded).
+    // Cycle through MODE_STANDBY, MODE_RECORD (WiFi/USB Serial excluded).
     g_mode = nextMode(g_mode);
     
     // Clear all recorded data and screen.
@@ -62,7 +67,38 @@ void onButton3Pressed()
     refreshUI();
 }
 
-// Button 4 callback - Wifi mode.
+// Button 4 callback - USB Serial mode (replaces WiFi mode).
+void onButton4Pressed()
+{
+    Serial.println("Button 4 pressed - USB Serial mode");
+    
+    // If currently in USB Serial mode, exit it.
+    if (g_mode == MODE_USB_SERIAL) {
+        Serial.println("Exiting USB Serial mode");
+        g_usbSerialManager.stop();
+        g_mode = MODE_STANDBY;
+        clearScreen();
+        return;
+    }
+    
+    // Stop logging if currently recording.
+    if (g_mode == MODE_RECORD && g_logger.isRecording()) {
+        g_logger.stopRecording();
+    }
+    
+    // Enter USB Serial mode.
+    g_mode = MODE_USB_SERIAL;
+    clearScreen();
+    
+    // Force an immediate sensor reading so USB Serial display shows current temps.
+    // Without this, with slow sampling (e.g., 1 hour), screen would be blank.
+    g_sensorReader.requestImmediateReading();
+    
+    Serial.println("Entering USB Serial mode");
+}
+
+// WiFi mode callback (disabled - replaced with USB Serial)
+/*
 void onButton4Pressed()
 {
     Serial.println("Button 4 pressed - WiFi mode");
@@ -91,6 +127,7 @@ void onButton4Pressed()
     
     Serial.println("Entering WiFi mode");
 }
+*/
 
 // --- Button initialization ---------------------------------------------------
 

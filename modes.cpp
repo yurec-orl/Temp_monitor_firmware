@@ -119,6 +119,8 @@ void handleRecordMode(const float tempsC[])
     drawStatusLine(tempsC, SENSOR_COUNT);
 }
 
+// WiFi mode handler (disabled - replaced with USB Serial)
+/*
 void handleWifiMode(const float tempsC[])
 {
     // WiFi mode: Start AP and web server.
@@ -165,4 +167,63 @@ void handleWifiMode(const float tempsC[])
     tft.print("http://");
     tft.print(g_wifiManager.getIPAddress());
     tft.print("/logs          ");
+}
+*/
+
+void handleUsbSerialMode(const float tempsC[])
+{
+    // USB Serial mode: Start serial command processor.
+    
+    // Start USB Serial manager if not already started (safe to call multiple times).
+    if (!g_usbSerialManager.isActive()) {
+        Serial.println("Starting USB Serial mode...");
+        g_usbSerialManager.start();
+    }
+    
+    // Display status.
+    drawStatusLine(tempsC, SENSOR_COUNT);
+    
+    // Show USB Serial info on screen (static display, safe to redraw).
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_GREEN, ILI9341_BLACK);
+    
+    tft.setCursor(10, 50);
+    tft.print("USB Serial Active  ");  // Extra spaces to clear old text
+    
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    
+    tft.setCursor(10, 80);
+    tft.print("Connect via USB cable       ");
+    
+    tft.setCursor(10, 95);
+    tft.print("Open Serial Monitor         ");
+    
+    tft.setCursor(10, 110);
+    tft.print("Baud: 115200                ");
+    
+    tft.setCursor(10, 130);
+    tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
+    tft.print("Commands:                   ");
+    
+    tft.setCursor(10, 145);
+    tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+    tft.print("  LIST - List log files     ");
+    
+    tft.setCursor(10, 160);
+    tft.print("  GET <file> - Download     ");
+    
+    tft.setCursor(10, 175);
+    tft.print("  STATUS - System info      ");
+    
+    tft.setCursor(10, 190);
+    tft.print("  DEL <file|*> - Delete     ");
+    
+    // Show log count
+    int logCount = g_logger.getLogCount();
+    tft.setCursor(10, 210);
+    tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
+    tft.print("Available logs: ");
+    tft.print(logCount);
+    tft.print("     ");
 }

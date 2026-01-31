@@ -4,7 +4,8 @@
 #include "config.h"
 #include "ring_buffer.h"
 #include "logger.h"
-#include "wifi_manager.h"
+// #include "wifi_manager.h"  // Disabled - replaced with USB Serial
+#include "usb_serial_manager.h"
 #include "battery_monitor.h"
 
 // --- Global state variables --------------------------------------------------
@@ -27,8 +28,11 @@ extern RingBuffer g_sensorValues[SENSOR_COUNT];
 // Temperature logger instance
 extern TemperatureLogger g_logger;
 
-// WiFi manager instance
-extern WiFiManager g_wifiManager;
+// WiFi manager instance (disabled - replaced with USB Serial)
+// extern WiFiManager g_wifiManager;
+
+// USB Serial manager instance
+extern UsbSerialManager g_usbSerialManager;
 
 // Battery monitor instance.
 extern BatteryMonitor g_batteryMonitor;

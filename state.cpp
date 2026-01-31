@@ -14,8 +14,11 @@ RingBuffer g_sensorValues[SENSOR_COUNT];
 // Logs temperature readings to flash memory
 TemperatureLogger g_logger;
 
-// Manages WiFi AP and web server
-WiFiManager g_wifiManager;
+// Manages WiFi AP and web server (disabled - replaced with USB Serial)
+// WiFiManager g_wifiManager;
+
+// USB Serial manager instance
+UsbSerialManager g_usbSerialManager;
 
 // Battery monitor instance.
 BatteryMonitor g_batteryMonitor;
@@ -42,14 +45,15 @@ DisplayChannel nextChannel(DisplayChannel current) {
   }
 }
 
-// Cycle to next operating mode (excluding WiFi mode)
+// Cycle to next operating mode (excluding WiFi/USB Serial mode)
 OperatingMode nextMode(OperatingMode current) {
-  // Switches between standby and recording modes. Wifi mode has dedicated button.
+  // Switches between standby and recording modes. USB Serial mode has dedicated button.
   switch(current) {
-    case MODE_STANDBY: return MODE_RECORD;
-    case MODE_RECORD:  return MODE_STANDBY;
-    case MODE_WIFI:    return MODE_STANDBY;
-    default:           return MODE_STANDBY;
+    case MODE_STANDBY:     return MODE_RECORD;
+    case MODE_RECORD:      return MODE_STANDBY;
+    // case MODE_WIFI:     return MODE_STANDBY;  // Disabled
+    case MODE_USB_SERIAL:  return MODE_STANDBY;
+    default:               return MODE_STANDBY;
   }
 }
 

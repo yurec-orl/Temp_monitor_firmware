@@ -6,13 +6,14 @@ Portable, battery‑powered, multi‑channel digital thermometer with data loggi
 Primary use case:
 - Profiling temperature behavior of embedded/dashboard electronics
 - Evaluating cooling efficiency over time
-- Stand‑alone operation with later data download via Wi‑Fi
+- Stand‑alone operation with later data download via USB Serial
 
 Key characteristics:
 - 4 independent temperature channels
 - Continuous logging to internal flash
 - Live graph on TFT display
 - Battery operation with USB charging
+- USB Serial interface for log file access (replaces WiFi)
 
 ---
 
@@ -21,7 +22,7 @@ Key characteristics:
 ### MCU
 - **ESP32‑S3** development board
 - Native USB (firmware upload + data transfer)
-- Integrated Wi‑Fi used for log download
+- USB Serial interface for log file management
 
 ### Sensors
 - **DS18B20** digital temperature sensors
@@ -84,9 +85,9 @@ Voltage divider: R1=220kΩ, R2=100kΩ (3.2:1 ratio for 4.2V→1.31V)
 ## 4. Firmware Architecture
 
 ### Operating Modes
-- **Idle** – live temperature display
+- **Standby** – live temperature display
 - **Recording** – periodic sampling + logging
-- **Review / Transfer** – Wi‑Fi access to log files
+- **USB Serial** – USB-based access to log files (commands: LIST, GET, STATUS, DEL)
 
 ### Logging Design
 - Storage: **Internal flash (LittleFS)**
@@ -219,7 +220,56 @@ This provides clear feedback when the battery is actively charging vs. when it's
 
 ---
 
-## 7. USB & Power Lessons Learned
+## 7. USB Serial Mode Implementation
+
+### Background
+The original WiFi-based log access proved unstable due to RF interference from the TFT display. A USB Serial interface was implemented as a more reliable alternative for log file management.
+
+### Features
+- **Text-based command protocol** over USB CDC serial port
+- **115200 baud** communication
+- **Four commands**: LIST, GET, STATUS, DEL
+- **Wildcard deletion**: `DEL *` removes all log files
+
+### Commands
+| Command | Description | Response |
+|---------|-------------|----------|
+| `LIST` | List all log files with sizes | File list in text format |
+| `GET <filename>` | Download log file contents | File content enclosed in markers |
+| `STATUS` | System status (storage, logs, recording) | Multi-line status report |
+| `DEL <filename\|*>` | Delete file or all logs (*) | Success/error message |
+
+### Python Client Tool
+A command-line Python script (`esp32_log_manager.py`) provides:
+- Auto-detection of ESP32 serial port
+- Batch download of all logs
+- Simple command-line interface
+- Proper error handling and timeouts
+
+**Example usage:**
+```bash
+python esp32_log_manager.py list
+python esp32_log_manager.py get-all -d ./logs
+python esp32_log_manager.py status
+python esp32_log_manager.py delete "*"
+```
+
+### Advantages Over WiFi
+1. **Reliability**: No RF interference issues
+2. **Simplicity**: Just plug in USB cable
+3. **Speed**: Faster than WiFi web interface
+4. **Compatibility**: Works with Arduino-ESP32 2.0.11+ (no TinyUSB required)
+5. **Security**: No wireless exposure
+6. **Debugging**: Serial monitor remains available
+
+### WiFi Mode Status
+- WiFi mode **disabled and commented out** but code preserved for future reference
+- `wifi_manager.h/cpp` still exist in codebase
+- Can be re-enabled if RF issues are resolved
+
+---
+
+## 8. USB & Power Lessons Learned
 
 ### Issue
 - Powering ESP32 simultaneously from USB and external 3.3 V caused instability and reboots
@@ -232,7 +282,7 @@ This provides clear feedback when the battery is actively charging vs. when it's
 
 ---
 
-## 8. Wi‑Fi Antenna Issue & Resolution
+## 9. Wi‑Fi Antenna Issue & Resolution (Historical)
 
 ### Problem
 - Very weak and unstable Wi‑Fi
@@ -243,34 +293,40 @@ This provides clear feedback when the battery is actively charging vs. when it's
 - Removing or moving display restored Wi‑Fi
 - Confirmed RF blockage, not firmware or ESP32 fault
 
-### Final Solution
+### Resolution Attempt
 - Rotated ESP32 board **90°**
 - Positioned antenna next to enclosure wall
 - Antenna oriented outward toward free space
 
+**Final Outcome:**
+- WiFi remained unstable in practice
+- Replaced with USB Serial mode (see Section 7)
+
 Result:
-- Strong, stable Wi‑Fi
-- No need for external antenna or board change
+- Strong, reliable USB Serial communication
+- No RF interference concerns
 
 ---
 
-## 9. Key Design Decisions (Summary)
+## 10. Key Design Decisions (Summary)
 
-- ESP32‑S3 chosen over Arduino for Wi‑Fi, flash, and USB
+- ESP32‑S3 chosen over Arduino for USB, flash, and processing power
 - Separate OneWire bus per sensor for deterministic channel mapping
 - Fixed sampling rate per log for simplicity and analysis clarity
 - CSV logging for maximum portability
 - Incremental graph drawing instead of framebuffer rendering
-- Mechanical RF fix preferred over antenna hacks
+- **USB Serial protocol** chosen over WiFi for reliability and simplicity
+- Text-based command protocol for human readability and debugging
 
 ---
 
-## 10. Final Status
+## 11. Final Status
 
-✔ All planned features implemented
-✔ Device fully assembled
-✔ Stable Wi‑Fi and power behavior
-✔ Logging, display, and battery systems working as intended
+✔ All planned features implemented  
+✔ Device fully assembled  
+✔ Stable power and USB communication  
+✔ Logging, display, and battery systems working as intended  
+✔ USB Serial mode provides reliable log file access  
 
 This project reached a **tool‑grade**, not prototype‑grade, level of completeness.
 

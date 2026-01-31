@@ -88,39 +88,50 @@ void loop()
       case MODE_RECORD:
         handleRecordMode(tempsC);
         break;
-      case MODE_WIFI:
-        handleWifiMode(tempsC);
+      // case MODE_WIFI:  // Disabled - replaced with USB Serial
+      //   handleWifiMode(tempsC);
+      //   break;
+      case MODE_USB_SERIAL:
+        handleUsbSerialMode(tempsC);
         break;
       default:
         break;
       }
 
-      // Serial debug.
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.print("Temps: ");
-      for (int i = 0; i < SENSOR_COUNT; ++i) {
-        Serial.print("CH");
-        Serial.print(i + 1);
-        Serial.print("=");
-        if (!g_channelHasDevice[i] || tempsC[i] == DEVICE_DISCONNECTED_C)
-        {
-          Serial.print("N/A ");
+      if (g_mode != MODE_USB_SERIAL)
+      {
+        // Serial debug.
+        Serial.print("[");
+        Serial.print(millis());
+        Serial.print("] ");
+        Serial.print("Temps: ");
+        for (int i = 0; i < SENSOR_COUNT; ++i) {
+          Serial.print("CH");
+          Serial.print(i + 1);
+          Serial.print("=");
+          if (!g_channelHasDevice[i] || tempsC[i] == DEVICE_DISCONNECTED_C)
+          {
+            Serial.print("N/A ");
+          }
+          else
+          {
+            Serial.print(tempsC[i]);
+            Serial.print("C ");
+          }
         }
-        else
-        {
-          Serial.print(tempsC[i]);
-          Serial.print("C ");
-        }
+        Serial.println();
       }
-      Serial.println();
     }
   }
   
-  // WiFi mode needs frequent handleClient() calls regardless of sensor timing.
-  if (g_mode == MODE_WIFI) {
-    g_wifiManager.handleClient();
+  // WiFi mode needs frequent handleClient() calls regardless of sensor timing (disabled).
+  // if (g_mode == MODE_WIFI) {
+  //   g_wifiManager.handleClient();
+  // }
+  
+  // USB Serial mode needs frequent handleClient() calls to process commands.
+  if (g_mode == MODE_USB_SERIAL) {
+    g_usbSerialManager.handleClient();
   }
   
   // Update battery monitor.
