@@ -267,21 +267,21 @@ void drawStandbyStatus()
             tft.print("CHARGE");
             break;
         case BATTERY_FULL:
-            tft.print("FULL");
+            tft.print("FULL  ");
             break;
         case BATTERY_GOOD:
-            tft.print("GOOD");
+            tft.print("GOOD  ");
             break;
         case BATTERY_LOW:
-            tft.print("LOW");
+            tft.print("LOW   ");
             break;
         case BATTERY_EMPTY:
-            tft.print("EMPTY");
+            tft.print("EMPTY ");
             break;
     }
     tft.print(" ");
     tft.print(battPercent);
-    tft.print("%)    ");  // Clear leftover text.
+    tft.print("%)");
     
     // 6. Logger error, if any.
     tft.setCursor(baseX, baseY + lineHeight * 5);
