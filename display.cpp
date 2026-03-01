@@ -153,7 +153,7 @@ void drawStandbyStatus()
     int logCount = g_logger.getLogCount();
     tft.setCursor(baseX, baseY);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
-    tft.print("Logs: ");
+    tft.print("Saved logs: ");
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     tft.print(logCount);
     tft.print("     ");  // Clear any leftover characters.
@@ -162,7 +162,7 @@ void drawStandbyStatus()
     size_t totalBytes = LittleFS.totalBytes();
     tft.setCursor(baseX, baseY + lineHeight);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
-    tft.print("Total: ");
+    tft.print("Total mem:  ");
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     tft.print(totalBytes / 1024);
     tft.print(" KB     ");
@@ -174,7 +174,7 @@ void drawStandbyStatus()
     
     tft.setCursor(baseX, baseY + lineHeight * 2);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
-    tft.print("Free:  ");
+    tft.print("Free mem:   ");
     
     // Red if less than 10%, otherwise white.
     if (freePercent < 10.0f) {
@@ -201,7 +201,7 @@ void drawStandbyStatus()
     
     tft.setCursor(baseX, baseY + lineHeight * 3);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
-    tft.print("Time:  ");
+    tft.print("Avail time: ");
     tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
     
     // Format time appropriately.
@@ -226,7 +226,7 @@ void drawStandbyStatus()
     tft.setCursor(baseX, baseY + lineHeight * 4);
     tft.setTextSize(2);
     tft.setTextColor(ILI9341_CYAN, ILI9341_BLACK);
-    tft.print("Batt:  ");
+    tft.print("Battery:    ");
     
     float battVoltage = g_batteryMonitor.getVoltage();
     BatteryState battState = g_batteryMonitor.getState();
@@ -264,7 +264,7 @@ void drawStandbyStatus()
     tft.print("(");
     switch (battState) {
         case BATTERY_CHARGING:
-            tft.print("CHARGING");
+            tft.print("CHARGE");
             break;
         case BATTERY_FULL:
             tft.print("FULL");
@@ -281,19 +281,19 @@ void drawStandbyStatus()
     }
     tft.print(" ");
     tft.print(battPercent);
-    tft.print("%)        ");  // Clear leftover text.
+    tft.print("%)    ");  // Clear leftover text.
     
     // 6. Logger error, if any.
     tft.setCursor(baseX, baseY + lineHeight * 5);
     tft.setTextSize(2);
     if (g_logger.hasError()) {
         tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
-        tft.print("ERR: ");
+        tft.print("ERROR:  ");
         tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
         tft.setTextSize(1);  // Smaller text for error message.
         tft.setCursor(baseX, baseY + lineHeight * 5 + 18);
         tft.print(g_logger.getErrorMessage());
-        tft.print("                    ");  // Clear any leftover text.
+        tft.print("     ");  // Clear any leftover text.
     } else {
         // Clear error area if no error.
         tft.fillRect(baseX, baseY + lineHeight * 5, 300, 40, ILI9341_BLACK);
