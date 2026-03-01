@@ -133,9 +133,9 @@ void drawStatusLine(const float tempsC[], int count)
     
     // Draw battery icon in top right corner.
     // Icon is same height as one text line (8 pixels at text size 1).
-    const int16_t iconWidth = 20;
-    const int16_t iconHeight = 8;
-    const int16_t iconX = tft.width() - iconWidth - 4;
+    const int16_t iconWidth = 24;
+    const int16_t iconHeight = 10;
+    const int16_t iconX = tft.width() - iconWidth - 4 - 8;  // Moved 8 pixels left
     const int16_t iconY = baseY;
     drawBatteryIcon(iconX, iconY, iconWidth, iconHeight);
 }
@@ -777,9 +777,9 @@ void drawBatteryIcon(int16_t x, int16_t y, int16_t width, int16_t height)
             break;
     }
     
-    // Clear area.
-    tft.fillRect(x, y, width, height, ILI9341_BLACK);
-    
+    // Clear area (battery plus lighting icon when charging).
+    tft.fillRect(x, y, width + 8, height, ILI9341_BLACK);
+
     // Draw battery body outline.
     tft.drawRect(x, y, bodyWidth, bodyHeight, iconColor);
     
@@ -794,15 +794,21 @@ void drawBatteryIcon(int16_t x, int16_t y, int16_t width, int16_t height)
         }
     }
     
-    // Draw lightning bolt if charging.
+    // Draw lightning bolt if charging (to the right of battery icon).
     if (showLightning) {
-        // Simple lightning bolt pattern in center of battery.
-        int16_t boltX = x + bodyWidth / 2 - 1;
-        int16_t boltY = y + 2;
+        // Draw lightning bolt to the right of battery icon.
+        int16_t boltX = x + bodyWidth + capWidth + 2;  // 2px spacing from battery
+        int16_t boltY = y + 1;
         
-        // Draw a simple zigzag pattern.
-        tft.drawLine(boltX + 1, boltY, boltX, boltY + 2, ILI9341_YELLOW);
-        tft.drawLine(boltX, boltY + 2, boltX + 2, boltY + 2, ILI9341_YELLOW);
-        tft.drawLine(boltX + 2, boltY + 2, boltX + 1, boltY + 4, ILI9341_YELLOW);
+        // Larger, more visible lightning bolt pattern (green color).
+        // Top part of bolt
+        tft.drawLine(boltX + 2, boltY, boltX, boltY + 3, ILI9341_GREEN);       // Top diagonal
+        tft.drawLine(boltX, boltY + 3, boltX + 3, boltY + 3, ILI9341_GREEN);   // Middle horizontal
+        // Bottom part of bolt
+        tft.drawLine(boltX + 3, boltY + 3, boltX + 1, boltY + 7, ILI9341_GREEN); // Bottom diagonal
+        
+        // Make it thicker by drawing parallel lines
+        tft.drawLine(boltX + 3, boltY, boltX + 1, boltY + 3, ILI9341_GREEN);     // Top diagonal (thick)
+        tft.drawLine(boltX + 4, boltY + 3, boltX + 2, boltY + 7, ILI9341_GREEN); // Bottom diagonal (thick)
     }
 }
