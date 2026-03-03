@@ -165,8 +165,8 @@ float BatteryMonitor::adcToVoltage(int adcValue)
   // V_battery = V_adc * (R1 + R2) / R2
   float batteryVoltage = adcVoltage * (BATTERY_R1 + BATTERY_R2) / BATTERY_R2;
   
-  // Apply calibration factor (measured 4.13V actual vs 3.91V displayed = 1.056).
-  const float CALIBRATION_FACTOR = 1.056f;
+  // Apply calibration factor.
+  const float CALIBRATION_FACTOR = 1.116f;
   batteryVoltage *= CALIBRATION_FACTOR;
   
   return batteryVoltage;
