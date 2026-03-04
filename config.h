@@ -72,9 +72,9 @@ constexpr float BATTERY_R2 = 100000.0f;  // Voltage divider R2 (100k ohm).
 constexpr int BATTERY_AVG_SAMPLES = 15;  // Number of samples for running average.
 
 // 18650 battery voltage levels (at divider output).
-constexpr float BATTERY_VOLTAGE_FULL = 4.0f;    // Consider full above this (start of linear discharge).
-constexpr float BATTERY_VOLTAGE_MID = 3.7f;     // Mid discharge (50% of usable capacity).
-constexpr float BATTERY_VOLTAGE_LOW = 3.6f;     // Low battery warning (end of linear phase, ~1 hour remaining).
+constexpr float BATTERY_VOLTAGE_FULL = 4.05f;    // Consider full above this (start of linear discharge).
+constexpr float BATTERY_VOLTAGE_MID = 3.6f;     // Mid discharge (50% of usable capacity).
+constexpr float BATTERY_VOLTAGE_LOW = 3.5f;     // Low battery warning (end of linear phase, ~1 hour remaining).
 constexpr float BATTERY_VOLTAGE_EMPTY = 3.3f;   // Empty/shutdown threshold.
 constexpr float BATTERY_CHARGING_THRESHOLD = 4.1f;  // Voltage above this = charging.
 

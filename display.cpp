@@ -236,10 +236,10 @@ void drawStandbyStatus()
     uint16_t voltageColor;
     switch (battState) {
         case BATTERY_CHARGING:
-            voltageColor = ILI9341_CYAN;
+            voltageColor = ILI9341_GREEN;
             break;
         case BATTERY_FULL:
-            voltageColor = ILI9341_GREEN;
+            voltageColor = ILI9341_WHITE;
             break;
         case BATTERY_GOOD:
             voltageColor = ILI9341_WHITE;
@@ -746,19 +746,19 @@ void drawBatteryIcon(int16_t x, int16_t y, int16_t width, int16_t height)
     
     switch (state) {
         case BATTERY_CHARGING:
-            iconColor = ILI9341_CYAN;
-            fillColor = ILI9341_CYAN;
+            iconColor = ILI9341_GREEN;
+            fillColor = ILI9341_GREEN;
             showLightning = true;
             break;
             
         case BATTERY_FULL:
-            iconColor = ILI9341_GREEN;
-            fillColor = ILI9341_GREEN;
+            iconColor = ILI9341_WHITE;
+            fillColor = ILI9341_WHITE;
             break;
             
         case BATTERY_GOOD:
             iconColor = ILI9341_WHITE;
-            fillColor = ILI9341_GREEN;
+            fillColor = ILI9341_WHITE;
             break;
             
         case BATTERY_LOW:
